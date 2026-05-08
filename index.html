@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家族の資産プランナー</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic',sans-serif;background:#f1f5f9;min-height:100vh;color:#1e293b}
+:root{
+  --bg:#fff;--bg2:#f8fafc;--bg3:#f1f5f9;
+  --txt:#1e293b;--txt2:#64748b;--txt3:#94a3b8;
+  --bdr:rgba(0,0,0,.10);--bdr2:rgba(0,0,0,.18);
+  --ok-bg:#eaf3de;--ok-txt:#3b6d11;--ok-bdr:#c0dd97;
+  --wn-bg:#faeeda;--wn-txt:#854f0b;--wn-bdr:#fac775;
+  --ng-bg:#fcebeb;--ng-txt:#a32d2d;--ng-bdr:#f09595;
+}
+@media(prefers-color-scheme:dark){
+  body{color:#e2e8f0}
+  :root{
+    --bg:#1e293b;--bg2:#263549;--bg3:#0f172a;
+    --txt:#e2e8f0;--txt2:#94a3b8;--txt3:#64748b;
+    --bdr:rgba(255,255,255,.10);--bdr2:rgba(255,255,255,.18);
+    --ok-bg:#173404;--ok-txt:#c0dd97;--ok-bdr:#3b6d11;
+    --wn-bg:#412402;--wn-txt:#fac775;--wn-bdr:#854f0b;
+    --ng-bg:#501313;--ng-txt:#f09595;--ng-bdr:#a32d2d;
+  }
+}
+input:focus,select:focus{outline:2px solid #378ADD;outline-offset:1px}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+button{cursor:pointer}button:active{transform:scale(.97)}
+.fade{animation:fd .18s ease}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.card{background:var(--bg);border:.5px solid var(--bdr);border-radius:12px;padding:16px 18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stitle{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px}
+.nf{margin-bottom:12px}
+.nf label{display:block;font-size:11px;font-weight:500;color:var(--txt2);margin-bottom:3px}
+.nf .row{display:flex;align-items:center;gap:5px}
+.nf input{flex:1;height:34px;padding:0 9px;border-radius:8px;border:.5px solid var(--bdr2);background:var(--bg);font-size:14px;color:var(--txt)}
+.nf .ro{background:var(--bg2)}
+.nf .un{font-size:12px;color:var(--txt2);white-space:nowrap}
+.tab-scroll{display:flex;gap:3px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-scroll::-webkit-scrollbar{display:none}
+.tabBtn{padding:5px 13px;border-radius:6px;border:none;font-size:13px;transition:background .12s;white-space:nowrap;flex-shrink:0}
+.kv{background:var(--bg2);border-radius:8px;padding:8px 10px}
+.kl{font-size:10px;color:var(--txt3);margin-bottom:2px}
+.kv2{font-size:14px;font-weight:500;color:var(--txt)}
+.kv2.red{color:var(--ng-txt)}
+.metaCard{background:var(--bg);border:.5px solid var(--bdr);border-radius:12px;padding:14px 16px}
+.ml{font-size:11px;color:var(--txt2);margin-bottom:3px}
+.mv{font-size:24px;font-weight:700;color:var(--txt)}
+.ms{font-size:13px;color:var(--txt2);font-weight:400}
+.mn{font-size:11px;color:var(--txt3);margin-top:2px}
+.eduItem{background:var(--bg2);border-radius:7px;padding:7px 9px}
+.el{font-size:9px;color:var(--txt3);margin-bottom:2px}
+.eduItem input{width:100%;border:none;background:transparent;font-size:14px;font-weight:500;color:var(--txt);padding:0;outline:none}
+.actualItem{background:var(--bg2);border-radius:8px;padding:10px 11px}
+.al{font-size:11px;color:var(--txt3);margin-bottom:5px}
+.actualItem input{flex:1;border:none;background:transparent;font-size:14px;font-weight:500;color:var(--txt);padding:0;outline:none}
+.investBlock{background:var(--bg2);border:.5px solid var(--bdr);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(55,138,221,.12);color:#185fa5;font-weight:500}
+
+/* ── 診断レポート ── */
+.diag-wrap{border-radius:12px;overflow:hidden;border:.5px solid var(--bdr);margin-bottom:14px}
+.diag-header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none;background:var(--bg)}
+.diag-header:hover{background:var(--bg2)}
+.diag-title{font-size:13px;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.diag-body{background:var(--bg);padding:0 16px 16px}
+.diag-item{border-radius:10px;padding:14px 16px;margin-top:10px}
+.diag-item.ok{background:var(--ok-bg);border:.5px solid var(--ok-bdr)}
+.diag-item.wn{background:var(--wn-bg);border:.5px solid var(--wn-bdr)}
+.diag-item.ng{background:var(--ng-bg);border:.5px solid var(--ng-bdr)}
+.diag-item-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.diag-item-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.diag-item-icon.ok{background:var(--ok-txt);color:var(--ok-bg)}
+.diag-item-icon.wn{background:var(--wn-txt);color:var(--wn-bg)}
+.diag-item-icon.ng{background:var(--ng-txt);color:var(--ng-bg)}
+.diag-item-label{font-size:12px;font-weight:700}
+.diag-item-label.ok{color:var(--ok-txt)}
+.diag-item-label.wn{color:var(--wn-txt)}
+.diag-item-label.ng{color:var(--ng-txt)}
+.diag-msg{font-size:13px;color:var(--txt);line-height:1.7;margin-bottom:8px}
+.diag-action{font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;line-height:1.6}
+.diag-action.ok{background:rgba(99,153,34,.12);color:var(--ok-txt)}
+.diag-action.wn{background:rgba(186,117,23,.12);color:var(--wn-txt)}
+.diag-action.ng{background:rgba(163,45,45,.12);color:var(--ng-txt)}
+.diag-score{display:flex;align-items:center;gap:6px}
+.score-dot{width:10px;height:10px;border-radius:50%}
+
+/* ── モバイル対応 ── */
+@media(max-width:600px){
+  .grid2{grid-template-columns:1fr}
+  .card{padding:14px 14px}
+  .nf input{height:44px;font-size:15px}
+  .tabBtn{font-size:12px;padding:5px 10px}
+  .diag-item{padding:12px 12px}
+  .diag-msg{font-size:12px}
+  table{font-size:12px}
+  th,td{padding:6px 4px!important}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {useState,useEffect,useMemo,useRef,useCallback}=React;
+const CY=new Date().getFullYear();
+const STORE="fp_v5";
+const N=v=>parseFloat(v)||0;
+
+const EDU_STAGES=[
+  {id:"nursery",      label:"保育園",        ages:[0,3],  def:36},
+  {id:"kindergarten", label:"幼稚園",        ages:[3,6],  def:24},
+  {id:"elementary",   label:"小学校",        ages:[6,12], def:60},
+  {id:"middle",    label:"中学校",ages:[12,15],def:50},
+  {id:"high",      label:"高校",  ages:[15,18],def:55},
+  {id:"university",label:"大学",  ages:[18,22],def:130},
+  {id:"graduate",  label:"大学院",ages:[22,24],def:130},
+];
+const EDU_LEVELS=[
+  {id:"high",label:"高校まで"},{id:"university",label:"大学まで"},{id:"graduate",label:"大学院まで"},
+];
+
+function makeChild(id){
+  const costs={};EDU_STAGES.forEach(s=>costs[s.id]=s.def);
+  return{id,name:`第${id}子`,birthYear:CY-5,maxLevel:"university",costs,
+    nurseryStart:0,nurseryEnd:3,
+    kindergartenStart:3,kindergartenEnd:6,
+    graduateStart:22,graduateEnd:24,
+    universityEntrance:100,graduateEntrance:50,activities:[]};
+}
+function makeInvest(id,owner='my'){
+  return{id,name:"金融資産（株・投信等）",balance:300,returnRate:5,monthly:3,owner,source:'income',investType:'monthly',lumpsums:[{id:1,amount:0,age:null}],stopType:'period'};
+}
+const DEF={
+  myAge:35,retireAge:65,mySavings:300,spouseSavings:0,
+  myPensionAge:65,myPensionMonthly:120,
+  spousePensionAge:65,spousePensionMonthly:60,
+  hasSpouse:true,spouseAge:33,spouseRetireAge:60,
+  incomeRanges:[
+    {id:1,fromAge:35,toAge:44,amount:720},
+    {id:2,fromAge:45,toAge:64,amount:840},
+  ],
+  spouseIncomeRanges:[
+    {id:1,fromAge:33,toAge:59,amount:300},
+  ],
+  invest:[makeInvest(1)],children:[makeChild(1)],
+  propertyPrice:4000,downPayment:500,loanYears:35,interestRate:1.5,purchaseYear:CY,
+  housingExtras:[
+    {id:1,name:'積立修繕費',monthly:1},
+    {id:2,name:'駐車場代',monthly:1.5},
+  ],
+  expenseRanges:[
+    {id:1,fromAge:35,toAge:64,amount:35},
+    {id:2,fromAge:65,toAge:80,amount:25},
+  ],
+  otherIncome:[],
+  otherExpense:[],
+  actuals:{}
+};
+
+/* ── 計算 ── */
+function loanCalc(price,down,years,rate){
+  const P=Math.max(0,price-down)*10000;
+  if(!P||!years)return 0;
+  const r=rate/100/12,n=years*12;
+  if(r===0)return P/n/10000;
+  return(P*r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1)/10000;
+}
+function childEdu(child,year){
+  const age=year-child.birthYear;let t=0;
+  for(const s of EDU_STAGES){
+    if(s.id==="university"&&child.maxLevel==="high")break;
+    if(s.id==="graduate"&&child.maxLevel!=="graduate")break;
+    const a=s.id==="nursery"?(child.nurseryStart??0)
+           :s.id==="kindergarten"?(child.kindergartenStart??3)
+           :s.id==="graduate"?(child.graduateStart??22)
+           :s.ages[0];
+    const b=s.id==="nursery"?(child.nurseryEnd??3)
+           :s.id==="kindergarten"?(child.kindergartenEnd??6)
+           :s.id==="graduate"?(child.graduateEnd??24)
+           :s.ages[1];
+    if(age>=a&&age<b)t+=child.costs[s.id]||0;
+    // 入学費用（入学年のみ）
+    if(s.id==="university"&&age===18)t+=(child.universityEntrance||0);
+    if(s.id==="graduate"&&age===(child.graduateStart??22))t+=(child.graduateEntrance||0);
+  }
+  // 習い事（月額×12）
+  (child.activities||[]).forEach(a=>{
+    const from=a.fromAge??0,to=a.toAge??18;
+    if(age>=from&&age<to)t+=(a.monthly||0)*12;
+  });
+  return t;
+}
+function getExpense(d,age){
+  const r=d.expenseRanges&&d.expenseRanges.find(r=>age>=r.fromAge&&age<=r.toAge);
+  return r?r.amount:(d.monthlyExpenses||35);
+}
+function getIncome(d,age){
+  const r=d.incomeRanges&&d.incomeRanges.find(r=>age>=r.fromAge&&age<=r.toAge);
+  return r?r.amount/12:(d.monthlyIncome||0);
+}
+function getSpouseIncome(d,spouseAge){
+  const r=d.spouseIncomeRanges&&d.spouseIncomeRanges.find(r=>spouseAge>=r.fromAge&&spouseAge<=r.toAge);
+  return r?r.amount/12:(d.spouseIncome||0);
+}
+
+function getMyAgeAtEvent(d,item){
+  if(!item.person||item.person==='my') return item.personAge??item.age??d.myAge;
+  if(item.person==='spouse') return d.myAge+(( item.personAge??0)-(d.spouseAge||0));
+  const child=d.children.find(c=>String(c.id)===String(item.person));
+  if(child) return d.myAge+(child.birthYear+(item.personAge??0)-CY);
+  return item.personAge??item.age??d.myAge;
+}
+
+function project(d){
+  const endY=CY+(80-d.myAge);
+  const lp=loanCalc(d.propertyPrice,d.downPayment,d.loanYears,d.interestRate);
+  const loanEnd=d.purchaseYear+d.loanYears;
+  const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0); // 表示用合計
+  let cash=(d.mySavings||0)+(d.spouseSavings||0);
+  let invests=d.invest.map(i=>({...i,cur:i.balance,contributed:0}));
+  const rows=[];
+  for(let yr=CY;yr<=endY;yr++){
+    const age=d.myAge+(yr-CY);
+    if(yr===d.purchaseYear)cash-=d.downPayment;
+    const retired=age>=d.retireAge;
+    const spouseAge=d.spouseAge+(yr-CY);
+    const spouseRetired=spouseAge>=d.spouseRetireAge;
+    const myInc=retired?0:getIncome(d,age)*12;
+    const spouseInc=(d.hasSpouse&&!spouseRetired)?getSpouseIncome(d,spouseAge)*12:0;
+    const myPension=age>=(d.myPensionAge||65)?d.myPensionMonthly:0;
+    const spousePension=(d.hasSpouse&&spouseAge>=(d.spousePensionAge||65))?d.spousePensionMonthly:0;
+    const income=myInc+spouseInc+myPension+spousePension;
+    const loan=(yr>=d.purchaseYear&&yr<loanEnd)?lp*12:0;
+    const housingExtra=(yr>=d.purchaseYear)?(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0)*12:0;
+    const edu=d.children.reduce((s,c)=>s+childEdu(c,yr),0);
+    // 年齢に応じた積立額（開始・終了期間を考慮）
+    const invM_total=retired?0:d.invest.reduce((s,i)=>{
+      if((i.investType||'monthly')==='lumpsum') return s; // 一括は月次積立なし
+      const active=(!i.startAge||age>=i.startAge)&&(!i.endAge||age<=i.endAge);
+      return s+(active?i.monthly:0);
+    },0);
+    const oneTimeIncome=(d.otherIncome||[]).filter(e=>getMyAgeAtEvent(d,e)===age).reduce((s,e)=>s+e.amount,0);
+    const oneTimeExpense=(d.otherExpense||[]).filter(e=>getMyAgeAtEvent(d,e)===age).reduce((s,e)=>s+e.amount,0);
+    const monthExp=getExpense(d,age);
+    // 収支計算後の現金（積立前）
+    // 一括投資：指定年齢に現金から一括で投資
+    const lumpsumTotal=d.invest.reduce((s,i)=>{
+      if((i.investType||'monthly')!=='lumpsum')return s;
+      return s+(i.lumpsums||[]).filter(l=>l.age!=null&&age===l.age).reduce((a,l)=>a+(l.amount||0),0);
+    },0);
+    const cashBeforeInv=cash+(income-monthExp*12-loan-housingExtra-edu)+oneTimeIncome-oneTimeExpense-lumpsumTotal;
+    // 現金が積立額に足りない場合は積立中止
+    const invM=cashBeforeInv>=invM_total*12?invM_total:0;
+    cash=cashBeforeInv-invM*12;
+    // invM_total の再計算（目標残高チェックを個別に行うため資産ごとに判定）
+    let invM_actual=0;
+    invests=invests.map(i=>{
+      const isLumpsum=(i.investType||'monthly')==='lumpsum';
+      if(isLumpsum){
+        const lumpAdd=(i.lumpsums||[]).filter(l=>l.age!=null&&age===l.age).reduce((a,l)=>a+(l.amount||0),0);
+        return{...i,cur:i.cur*(1+i.returnRate/100)+lumpAdd,contributed:i.contributed+lumpAdd};
+      }
+      const periodActive=(!i.startAge||age>=i.startAge)&&(!i.endAge||age<=i.endAge)&&!retired;
+      const targetReached=i.targetBalance&&i.contributed>=i.targetBalance;
+      const monthlyActive=periodActive&&!targetReached;
+      const add=monthlyActive&&invM>0?i.monthly*12:0;
+      invM_actual+=monthlyActive&&invM>0?i.monthly:0;
+      return{...i,cur:i.cur*(1+i.returnRate/100)+add,contributed:i.contributed+add};
+    });
+    const totalInv=Math.round(invests.reduce((s,i)=>s+i.cur,0));
+    const investSnapshot=invests.map(i=>({id:i.id,name:i.name,cur:Math.round(i.cur)}));
+    const cashR=Math.round(cash);
+    const incomeR=Math.round(income+oneTimeIncome);
+    const expenseR=Math.round(monthExp*12+loan+housingExtra+edu+invM+oneTimeExpense);
+    const netR=incomeR-expenseR;
+    rows.push({yr,age,label:`${age}歳`,total:cashR+totalInv,cash:cashR,invest:totalInv,
+      investSnapshot,
+      cashMinus:cashR<0,
+      loan:Math.round(loan),
+      income:incomeR,expense:expenseR,net:netR,edu:Math.round(edu)});
+  }
+  return rows;
+}
+
+/* ── 診断ロジック ── */
+function diagnose(d,proj,lp){
+  const householdIncome=getIncome(d,d.myAge)+(d.hasSpouse?getSpouseIncome(d,d.spouseAge||0):0);
+  const housingExtrasM=(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0);
+  const loanRatio=householdIncome>0?(lp+housingExtrasM)/householdIncome:0;
+  const loanAmt=Math.max(0,d.propertyPrice-d.downPayment);
+  const totalCost=Math.round(lp*d.loanYears*12);
+  const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0);
+  const mNet=householdIncome-getExpense(d,d.myAge)-lp-totalInvM;
+  const last=proj[proj.length-1];
+  const atRetire=proj.find(r=>r.age===d.retireAge);
+  const zeroRow=proj.find(r=>r.total<0);
+
+  /* --- 住宅診断 --- */
+  let housing;
+  const rPct=Math.round(loanRatio*100);
+  const targetLoan=Math.floor(householdIncome*0.25*d.loanYears*12/10000)*10000;
+  const neededDown=Math.max(0,d.propertyPrice-Math.round(targetLoan));
+  const extraDown=neededDown-d.downPayment;
+
+  if(loanRatio<0.25){
+    housing={
+      status:'green',label:'住宅ローン：余裕あり',
+      msg:`世帯月収${householdIncome.toFixed(1)}万円に対してローン返済＋追加費用は月${(lp+housingExtrasM).toFixed(1)}万円（収入比${rPct}%）です。理想的な25%以内に収まっており、家計に無理のない水準です。`,
+      action:`このまま計画を進めて問題ありません。余剰資金は金融資産への積立に回すと将来の資産形成が加速します。`
+    };
+  } else if(loanRatio<0.35){
+    housing={
+      status:'yellow',label:'住宅ローン：やや高め',
+      msg:`世帯月収${householdIncome.toFixed(1)}万円に対してローン返済＋追加費用は月${(lp+housingExtrasM).toFixed(1)}万円（収入比${rPct}%）です。許容範囲内ですが、子供の教育費や急な支出が重なると家計が圧迫されます。`,
+      action:`理想の25%以下に抑えるには、借入額を${Math.round(targetLoan/10000)}万円以下にするか${extraDown>0?`頭金をあと${Math.round(extraDown/10000)*10}万円増やす`:'繰り上げ返済を検討する'}ことで改善できます。`
+    };
+  } else {
+    housing={
+      status:'red',label:'住宅ローン：高負担',
+      msg:`世帯月収${householdIncome.toFixed(1)}万円に対してローン返済＋追加費用は月${(lp+housingExtrasM).toFixed(1)}万円（収入比${rPct}%）です。35%を超える返済比率は、教育費・老後資金の積立が困難になるリスクがあります。`,
+      action:`物件価格を${Math.round((d.propertyPrice*(rPct/25)/100)*100/100)}万円以下に見直すか、頭金をあと${Math.round((loanAmt-targetLoan)/10000)*10}万円以上増やすことを強く推奨します。`
+    };
+  }
+
+  /* --- 老後診断 --- */
+  let retirement;
+  const finalTotal=(last?.total??0);
+  const retireTotal=(atRetire?.total??0);
+
+  if(finalTotal>=0){
+    const monthlyMargin=Math.round(finalTotal/((80-d.retireAge)*12));
+    retirement={
+      status:'green',label:'老後資産：問題なし',
+      msg:`${d.retireAge}歳の退職時に約${retireTotal.toLocaleString()}万円、80歳時には約${finalTotal.toLocaleString()}万円の資産が残る見通しです。現在の計画を継続すれば老後資金は確保できています。`,
+      action:`退職後も月${monthlyMargin.toLocaleString()}万円ペースで取り崩せる計算です。インフレや想定外の医療費に備えて、資産の一部を流動性の高い形で保有しておくと安心です。`
+    };
+  } else if(zeroRow){
+    const shortfall=Math.abs(finalTotal);
+    const neededExtra=Math.round(shortfall/((d.retireAge-d.myAge)*12)*10)/10;
+    retirement={
+      status:'red',label:`老後資産：${zeroRow.age}歳頃に不足`,
+      msg:`現在の計画では${zeroRow.age}歳頃に資産が底をつく見込みです。80歳時点では約${Math.abs(finalTotal).toLocaleString()}万円の不足が生じます。`,
+      action:`今から月${neededExtra}万円追加で積み立てるか、金融資産の運用利率を0.5〜1%改善するだけで状況が大きく変わります。iDeCoやNISAの活用も有効です。`
+    };
+  } else {
+    retirement={
+      status:'red',label:'老後資産：不足の見込み',
+      msg:`現在の計画では80歳時点で約${Math.abs(finalTotal).toLocaleString()}万円の不足が生じます。`,
+      action:`積立額の増加または運用利率の改善を検討してください。`
+    };
+  }
+
+  /* --- 月収支診断 --- */
+  let monthly;
+  if(mNet>0){
+    const savingRate=Math.round((mNet+totalInvM)/householdIncome*100);
+    monthly={
+      status:'green',label:'月収支：黒字',
+      msg:`毎月${mNet.toFixed(1)}万円の黒字です。うち金融資産への積立が${totalInvM.toFixed(1)}万円で、実質の貯蓄率は約${savingRate}%です。`,
+      action:savingRate>=20
+        ?`貯蓄率${savingRate}%は優秀な水準です。この調子で積立を継続すれば、老後資産の目標達成が視野に入ります。`
+        :`貯蓄率を25%以上に引き上げると、老後資産がさらに安定します。生活費の見直しや収入アップが効果的です。`
+    };
+  } else {
+    const deficit=Math.abs(mNet);
+    monthly={
+      status:'red',label:'月収支：赤字',
+      msg:`毎月${deficit.toFixed(1)}万円の赤字です。このまま続くと貯蓄が減り続け、将来の資産計画に影響が出ます。`,
+      action:`生活費（現在${getExpense(d,d.myAge)}万円）を${(getExpense(d,d.myAge)-deficit-0.5).toFixed(1)}万円以下に抑えるか、積立額（${totalInvM}万円）を一時的に減らして家計を安定させることを優先してください。`
+    };
+  }
+
+  /* --- 総合スコア --- */
+  const scores={green:0,yellow:1,red:2};
+  const total=scores[housing.status]+scores[retirement.status]+scores[monthly.status];
+  let overall;
+  if(total===0) overall={text:'現在のプランは非常に健全です',status:'green'};
+  else if(total<=2) overall={text:'概ね問題ありませんが、改善余地があります',status:'yellow'};
+  else overall={text:'いくつかのリスクへの対策が必要です',status:'red'};
+
+  return{housing,retirement,monthly,overall};
+}
+
+/* ── ツールチップ上部表示カスタムポジショナー ── */
+Chart.Tooltip.positioners.top=function(items){
+  if(!items.length)return false;
+  const pos=Chart.Tooltip.positioners.average(items);
+  return{x:pos.x,y:this.chart.chartArea.top+4};
+};
+
+/* ── 収支グラフ ── */
+function CashflowChart({proj}){
+  const ref=useRef(null);const chartRef=useRef(null);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==='undefined')return;
+    if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}
+    const gc=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';
+    const tc=isDark?'#64748b':'#94a3b8';
+    chartRef.current=new Chart(ref.current,{
+      type:'line',
+      data:{labels:proj.map(r=>r.label),datasets:[
+        {label:'収支（差）',data:proj.map(r=>r.net),type:'bar',
+         backgroundColor:proj.map(r=>r.net>=0?'rgba(29,158,117,.55)':'rgba(163,45,45,.55)'),
+         borderRadius:2,order:2},
+        {label:'収入',data:proj.map(r=>r.income),
+         borderColor:'#378ADD',borderWidth:2,backgroundColor:'transparent',
+         pointRadius:0,tension:.3,order:1},
+        {label:'支出',data:proj.map(r=>r.expense),
+         borderColor:'#EF9F27',borderWidth:2,backgroundColor:'transparent',
+         pointRadius:0,tension:.3,order:1},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},
+          tooltip:{position:'top',callbacks:{label:ctx=>`${ctx.dataset.label}：${Math.round(ctx.raw).toLocaleString()}万円`}}},
+        scales:{
+          x:{stacked:false,ticks:{color:tc,font:{size:10},maxTicksLimit:10},grid:{color:gc}},
+          y:{ticks:{color:tc,font:{size:10},callback:v=>`${v}万`},grid:{color:gc}}
+        },
+        animation:{duration:300}}
+    });
+    return()=>{if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}};
+  },[proj]);
+  return React.createElement('div',{style:{height:220,position:'relative'}},
+    React.createElement('canvas',{ref,role:'img','aria-label':'年間収支グラフ'}));
+}
+
+/* ── 金融資産別推移グラフ ── */
+const INVEST_COLORS=['#1D9E75','#378ADD','#EF9F27','#A855F7','#EC4899','#F97316','#14B8A6','#6366F1'];
+function InvestLineChart({proj,invest}){
+  const ref=useRef(null);const chartRef=useRef(null);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==='undefined')return;
+    if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}
+    const gc=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';
+    const tc=isDark?'#64748b':'#94a3b8';
+    const datasets=invest.map((inv,idx)=>({
+      label:inv.name,
+      data:proj.map(r=>{
+        const snap=r.investSnapshot?.find(s=>s.id===inv.id);
+        return snap?snap.cur:null;
+      }),
+      borderColor:INVEST_COLORS[idx%INVEST_COLORS.length],
+      backgroundColor:INVEST_COLORS[idx%INVEST_COLORS.length]+'20',
+      borderWidth:2,pointRadius:0,tension:.3,fill:false,spanGaps:true,
+    }));
+    chartRef.current=new Chart(ref.current,{
+      type:'line',
+      data:{labels:proj.map(r=>r.label),datasets},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:true,position:'bottom',
+            labels:{color:tc,font:{size:11},boxWidth:12,padding:12}},
+          tooltip:{position:'top',
+            callbacks:{label:ctx=>ctx.raw==null?null:`${ctx.dataset.label}：${Math.round(ctx.raw).toLocaleString()}万円`},
+            filter:item=>item.raw!=null}
+        },
+        scales:{
+          x:{ticks:{color:tc,font:{size:10},maxTicksLimit:10},grid:{color:gc}},
+          y:{ticks:{color:tc,font:{size:10},callback:v=>`${v}万`},grid:{color:gc}}
+        },
+        animation:{duration:300}}
+    });
+    return()=>{if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}};
+  },[proj,invest]);
+  return React.createElement('div',{style:{height:260,position:'relative'}},
+    React.createElement('canvas',{ref,role:'img','aria-label':'金融資産別評価額推移グラフ'}));
+}
+
+/* ── 資産内訳円グラフ ── */
+function AssetPieChart({slices}){
+  const ref=useRef(null);const chartRef=useRef(null);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==='undefined')return;
+    if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}
+    const labels=slices.map(s=>s.label);
+    const data=slices.map(s=>s.value);
+    const colors=slices.map(s=>s.color);
+    chartRef.current=new Chart(ref.current,{
+      type:'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,
+        borderColor:isDark?'#1e293b':'#ffffff',hoverOffset:6}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        cutout:'62%',
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            label:ctx=>{
+              const total=ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct=total>0?Math.round(ctx.raw/total*100):0;
+              return` ${ctx.label}：${Math.round(ctx.raw).toLocaleString()}万円（${pct}%）`;
+            }
+          }}
+        },
+        animation:{duration:400}
+      }
+    });
+    return()=>{if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}};
+  },[slices]);
+  return React.createElement('div',{style:{height:180,position:'relative'}},
+    React.createElement('canvas',{ref,role:'img','aria-label':'現在の資産内訳円グラフ'})
+  );
+}
+
+/* ── 総資産グラフ（積み上げ棒グラフ） ── */
+function AssetChart({proj}){
+  const ref=useRef(null);const chartRef=useRef(null);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  useEffect(()=>{
+    if(!ref.current||typeof Chart==='undefined')return;
+    if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}
+    const gc=isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.07)';
+    const tc=isDark?'#64748b':'#94a3b8';
+    chartRef.current=new Chart(ref.current,{
+      type:'bar',
+      data:{labels:proj.map(r=>r.label),datasets:[
+        {label:'現金・預貯金',data:proj.map(r=>Math.max(0,r.cash)),
+         backgroundColor:'rgba(55,138,221,.75)',
+         stack:'total',order:2,borderRadius:0,borderSkipped:false},
+        {label:'金融資産',data:proj.map(r=>Math.max(0,r.invest)),
+         backgroundColor:'rgba(29,158,117,.75)',
+         stack:'total',order:2,borderRadius:2,borderSkipped:'bottom'},
+        {label:'マイナス（現金）',data:proj.map(r=>Math.min(0,r.cash)),
+         backgroundColor:'rgba(163,45,45,.7)',
+         stack:'total',order:2,borderRadius:0,borderSkipped:false},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},
+          tooltip:{position:'top',
+            callbacks:{
+              label:ctx=>{
+                if(ctx.raw==null||ctx.raw===0)return null;
+                if(ctx.dataset.label==='マイナス（現金）')
+                  return`現金不足：${Math.round(ctx.raw).toLocaleString()}万円`;
+                return`${ctx.dataset.label}：${Math.round(ctx.raw).toLocaleString()}万円`;
+              }
+            },
+            filter:item=>item.raw!=null&&item.raw!==0
+          }
+        },
+        scales:{
+          x:{stacked:true,ticks:{color:tc,font:{size:10},maxTicksLimit:10},grid:{color:gc}},
+          y:{stacked:true,ticks:{color:tc,font:{size:10},callback:v=>`${v}万`},grid:{color:gc}}
+        },
+        animation:{duration:300}}
+    });
+    return()=>{if(chartRef.current){chartRef.current.destroy();chartRef.current=null;}};
+  },[proj]);
+  return React.createElement('div',{style:{height:240,position:'relative'}},
+    React.createElement('canvas',{ref,role:'img','aria-label':'総資産推移グラフ（積み上げ棒グラフ）'}));
+}
+
+/* ── 診断レポートコンポーネント ── */
+function DiagReport({diag,open,setOpen}){
+  const E=React.createElement;
+  const statusColor={green:'var(--ok-txt)',yellow:'var(--wn-txt)',red:'var(--ng-txt)'};
+  const statusBg={green:'var(--ok-bg)',yellow:'var(--wn-bg)',red:'var(--ng-bg)'};
+  const statusIcon={green:'✓',yellow:'!',red:'✕'};
+  const statusLabel={green:'問題なし',yellow:'要注意',red:'要改善'};
+
+  return E('div',{className:'diag-wrap'},
+    /* ヘッダー */
+    E('div',{className:'diag-header',onClick:()=>setOpen(o=>!o)},
+      E('div',{className:'diag-title'},
+        E('span',{style:{fontSize:16}},'📋'),
+        '診断レポート',
+        E('span',{style:{
+          fontSize:11,padding:'2px 8px',borderRadius:4,fontWeight:600,
+          background:statusBg[diag.overall.status],
+          color:statusColor[diag.overall.status]
+        }},diag.overall.text)
+      ),
+      E('span',{style:{fontSize:12,color:'var(--txt3)'}},[open?'▲':'▼'].join(''))
+    ),
+
+    /* ボディ */
+    open&&E('div',{className:'diag-body'},
+      [diag.housing,diag.retirement,diag.monthly].map((item,idx)=>
+        E('div',{key:idx,className:`diag-item ${item.status}`},
+          E('div',{className:'diag-item-head'},
+            E('div',{className:`diag-item-icon ${item.status}`},statusIcon[item.status]),
+            E('div',{className:`diag-item-label ${item.status}`},item.label),
+            E('span',{style:{
+              marginLeft:'auto',fontSize:10,padding:'1px 6px',borderRadius:3,
+              background:statusBg[item.status],
+              color:statusColor[item.status],fontWeight:600,opacity:.8
+            }},statusLabel[item.status])
+          ),
+          E('p',{className:'diag-msg'},item.msg),
+          E('div',{className:`diag-action ${item.status}`},
+            E('span',{style:{marginRight:4}},'💡'),item.action)
+        )
+      )
+    )
+  );
+}
+
+/* ── UI helpers ── */
+function NF({label,value,onChange,unit,min=0,max,step=1,note,readOnly}){
+  const[local,setLocal]=useState(String(value));
+  useEffect(()=>setLocal(String(value)),[value]);
+  const commit=v=>{const n=parseFloat(v);if(!isNaN(n))onChange(n);else setLocal(String(value));};
+  return React.createElement('div',{className:'nf'},
+    React.createElement('div',{style:{display:'flex',justifyContent:'space-between'}},
+      React.createElement('label',null,label),
+      note&&React.createElement('span',{style:{fontSize:10,color:'var(--txt3)'}},note)
+    ),
+    React.createElement('div',{className:'row'},
+      React.createElement('input',{type:'number',value:local,min,max,step,readOnly,
+        className:readOnly?'ro':undefined,
+        onChange:e=>setLocal(e.target.value),
+        onBlur:e=>commit(e.target.value),
+        onKeyDown:e=>e.key==='Enter'&&commit(e.target.value)}),
+      unit&&React.createElement('span',{className:'un'},unit)
+    )
+  );
+}
+/* インライン数値入力（blur確定方式） */
+function InlineNum({value,onChange,min=0,max,step=1,style}){
+  const[local,setLocal]=useState(String(value));
+  useEffect(()=>setLocal(String(value)),[value]);
+  const commit=v=>{const n=parseFloat(v);if(!isNaN(n))onChange(n);else setLocal(String(value));};
+  return React.createElement('input',{type:'number',value:local,min,max,step,
+    onChange:e=>setLocal(e.target.value),
+    onBlur:e=>commit(e.target.value),
+    onKeyDown:e=>e.key==='Enter'&&commit(e.target.value),
+    style});
+}
+
+/* テキスト入力（blur確定方式） */
+function InlineText({value,onChange,style}){
+  const[local,setLocal]=useState(value);
+  useEffect(()=>setLocal(value),[value]);
+  return React.createElement('input',{type:'text',value:local,
+    onChange:e=>setLocal(e.target.value),
+    onBlur:e=>onChange(e.target.value),
+    onKeyDown:e=>e.key==='Enter'&&onChange(e.target.value),
+    style});
+}
+
+function Light({label,status,value,sub}){
+  const cfg={
+    green:{bg:'var(--ok-bg)',col:'var(--ok-txt)',ic:'✓'},
+    yellow:{bg:'var(--wn-bg)',col:'var(--wn-txt)',ic:'!'},
+    red:{bg:'var(--ng-bg)',col:'var(--ng-txt)',ic:'✕'},
+  }[status];
+  const E=React.createElement;
+  return E('div',{style:{background:'var(--bg)',border:'.5px solid var(--bdr)',borderRadius:12,padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10}},
+    E('div',{style:{width:32,height:32,borderRadius:'50%',background:cfg.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:14,fontWeight:600,color:cfg.col}},cfg.ic),
+    E('div',null,
+      E('div',{style:{fontSize:11,color:'var(--txt2)',marginBottom:2}},label),
+      E('div',{style:{fontSize:15,fontWeight:500,color:'var(--txt)'}},value),
+      sub&&E('div',{style:{fontSize:11,color:'var(--txt3)',marginTop:1}},sub)
+    )
+  );
+}
+
+/* null許容の数値入力（blur確定方式・text typeで連続入力対応） */
+function InlineNumNullable({value,onChange,min,max,placeholder,style}){
+  const[local,setLocal]=useState(value==null?'':String(value));
+  useEffect(()=>setLocal(value==null?'':String(value)),[value]);
+  const commit=v=>{
+    const s=String(v).trim();
+    if(s===''){onChange(null);return;}
+    const n=parseInt(s,10);
+    if(!isNaN(n))onChange(n);
+    else setLocal(value==null?'':String(value));
+  };
+  return React.createElement('input',{
+    type:'text',inputMode:'numeric',pattern:'[0-9]*',
+    value:local,placeholder,
+    onChange:e=>setLocal(e.target.value.replace(/[^0-9]/g,'')),
+    onBlur:e=>commit(e.target.value),
+    onKeyDown:e=>e.key==='Enter'&&commit(e.target.value),
+    style});
+}
+function InvestCard({inv,d,isMobile,updI,setD}){
+  const E=React.createElement;
+  const canDelete=d.invest.length>1;
+  const pred10=Math.round(inv.balance*Math.pow(1+inv.returnRate/100,10)+inv.monthly*12*((Math.pow(1+inv.returnRate/100,10)-1)/(inv.returnRate/100||0.0001)));
+  return E('div',{style:{background:'var(--bg2)',border:'.5px solid var(--bdr)',borderRadius:10,padding:'14px 16px',marginBottom:10}},
+    E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+      E(InlineText,{value:inv.name,onChange:v=>updI(inv.id,'name',v),
+        style:{fontWeight:600,fontSize:13,flex:1,height:32,padding:'0 8px',borderRadius:7,
+          border:'.5px solid var(--bdr2)',background:'var(--bg2)',color:'var(--txt)'}}),
+      E('div',{style:{display:'flex',gap:6,alignItems:'center',marginLeft:8}},
+        inv.returnRate>0&&E('span',{className:'badge'},`年率 ${inv.returnRate}%`),
+        canDelete&&E('button',{
+          onClick:()=>setD(p=>({...p,invest:p.invest.filter(i=>i.id!==inv.id)})),
+          style:{border:'none',background:'transparent',color:'var(--txt3)',fontSize:16,padding:'0 2px'}
+        },'×')
+      )
+    ),
+    E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:8,marginBottom:8}},
+      E('div',null,
+        E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:3}},'現在の評価額'),
+        E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+          E(InlineNum,{value:inv.balance,min:0,step:10,onChange:v=>updI(inv.id,'balance',v),
+            style:{flex:1,height:32,padding:'0 8px',borderRadius:8,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:14,color:'var(--txt)'}}),
+          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'万円')
+        )
+      ),
+      E('div',null,
+        E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:3}},'年間利率（想定）'),
+        E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+          E(InlineNum,{value:inv.returnRate,min:0,max:30,step:0.5,onChange:v=>updI(inv.id,'returnRate',v),
+            style:{flex:1,height:32,padding:'0 8px',borderRadius:8,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:14,color:'var(--txt)'}}),
+          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'%/年')
+        )
+      )
+    ),
+    /* 投資方法切り替え */
+    E('div',{style:{marginBottom:12}},
+      E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:4}},'投資方法'),
+      E('div',{style:{display:'flex',gap:6}},
+        ['monthly','lumpsum','none'].map(t=>
+          E('button',{key:t,onClick:()=>updI(inv.id,'investType',t),
+            style:{flex:1,height:32,borderRadius:7,fontSize:12,fontWeight:500,cursor:'pointer',
+              border:'none',
+              background:(inv.investType||'monthly')===t?'#378ADD':'var(--bg2)',
+              color:(inv.investType||'monthly')===t?'#fff':'var(--txt2)'}
+          },t==='monthly'?'📅 積立':t==='lumpsum'?'💰 一括投資':'➖ 追加費用なし')
+        )
+      )
+    ),
+
+    /* 積立の場合 */
+    (inv.investType||'monthly')==='monthly'&&E('div',null,
+      E('div',{style:{marginBottom:8}},
+        E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:3}},'毎月の積立額'),
+        E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+          E(InlineNum,{value:inv.monthly,min:0,step:0.5,onChange:v=>updI(inv.id,'monthly',v),
+            style:{flex:1,height:32,padding:'0 8px',borderRadius:8,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:14,color:'var(--txt)'}}),
+          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'万円/月')
+        )
+      ),
+      E('div',{style:{marginBottom:8}},
+        E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:4}},'積立開始年齢'),
+        E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+          E(InlineNumNullable,{value:inv.startAge??null,placeholder:`${d.myAge}`,min:d.myAge,max:100,
+            onChange:v=>updI(inv.id,'startAge',v),
+            style:{flex:1,height:32,padding:'0 8px',borderRadius:8,
+              border:inv.startAge?'.5px solid #378ADD':'.5px solid var(--bdr2)',
+              background:'var(--bg)',fontSize:13,color:'var(--txt)'}}),
+          E('span',{style:{fontSize:11,color:'var(--txt3)',whiteSpace:'nowrap'}},'歳〜　空白=現在から')
+        )
+      ),
+      E('div',{style:{marginBottom:8}},
+        E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:4}},'積立停止の条件'),
+        E('div',{style:{display:'flex',gap:6,marginBottom:8}},
+          ['period','limit'].map(t=>
+            E('button',{key:t,onClick:()=>updI(inv.id,'stopType',t),
+              style:{flex:1,height:30,borderRadius:7,fontSize:11,fontWeight:500,cursor:'pointer',
+                border:'none',
+                background:(inv.stopType||'period')===t?'#378ADD':'var(--bg2)',
+                color:(inv.stopType||'period')===t?'#fff':'var(--txt2)'}
+            },t==='period'?'📅 期間で停止':'🎯 上限額で停止')
+          )
+        ),
+        (inv.stopType||'period')==='period'
+          ? E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+              E(InlineNumNullable,{value:inv.endAge??null,placeholder:`${d.retireAge}`,min:d.myAge,max:100,
+                onChange:v=>updI(inv.id,'endAge',v),
+                style:{flex:1,height:32,padding:'0 8px',borderRadius:8,
+                  border:inv.endAge?'.5px solid #EF9F27':'.5px solid var(--bdr2)',
+                  background:'var(--bg)',fontSize:13,color:'var(--txt)'}}),
+              E('span',{style:{fontSize:11,color:'var(--txt3)',whiteSpace:'nowrap'}},'歳まで　空白=退職まで')
+            )
+          : E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+              E(InlineNumNullable,{value:inv.targetBalance??null,placeholder:'例：1000',min:0,max:99999,
+                onChange:v=>updI(inv.id,'targetBalance',v),
+                style:{flex:1,height:32,padding:'0 8px',borderRadius:8,
+                  border:inv.targetBalance?'.5px solid #1D9E75':'.5px solid var(--bdr2)',
+                  background:'var(--bg)',fontSize:13,color:'var(--txt)'}}),
+              E('span',{style:{fontSize:11,color:'var(--txt3)',whiteSpace:'nowrap'}},'万円に達したら停止')
+            )
+      ),
+      (inv.startAge||(inv.stopType||'period')==='period'?inv.endAge:inv.targetBalance)&&E('div',{style:{
+        marginBottom:8,padding:'8px 10px',borderRadius:7,
+        background:'rgba(55,138,221,.08)',border:'.5px solid rgba(55,138,221,.2)',
+        fontSize:11,color:'var(--txt2)'}},
+        (inv.stopType||'period')==='period'
+          ?`📌 ${inv.startAge??d.myAge}歳〜${inv.endAge??d.retireAge}歳まで積立`
+          :`🎯 ${inv.startAge??d.myAge}歳から開始・累計${(inv.targetBalance||0).toLocaleString()}万円で停止`
+      )
+    ),
+
+    /* 一括投資の場合 */
+    (inv.investType||'monthly')==='lumpsum'&&E('div',null,
+      E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+        E('div',{style:{fontSize:10,color:'var(--txt3)',fontWeight:600}},'投資スケジュール'),
+        E('button',{
+          onClick:()=>updI(inv.id,'lumpsums',[...(inv.lumpsums||[]),{id:Date.now(),amount:0,age:null}]),
+          style:{fontSize:11,padding:'3px 10px',borderRadius:6,border:'.5px solid var(--bdr2)',
+            background:'transparent',color:'var(--txt)',cursor:'pointer'}
+        },'+ 追加')
+      ),
+      E('table',{style:{width:'100%',borderCollapse:'collapse',marginBottom:8}},
+        E('thead',null,E('tr',null,
+          E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'投資年齢'),
+          E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'投資額'),
+          E('th',{style:{borderBottom:'.5px solid var(--bdr2)'}})
+        )),
+        E('tbody',null,(inv.lumpsums||[]).map((l,i)=>
+          E('tr',{key:l.id,style:{background:i%2===0?'transparent':'var(--bg2)'}},
+            E('td',{style:{padding:'5px 6px'}},
+              E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                E(InlineNumNullable,{value:l.age??null,placeholder:`${d.myAge}`,min:d.myAge,max:100,
+                  onChange:v=>updI(inv.id,'lumpsums',(inv.lumpsums||[]).map(x=>x.id===l.id?{...x,age:v}:x)),
+                  style:{width:48,height:30,padding:'0 6px',borderRadius:7,
+                    border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                    fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                E('span',{style:{fontSize:11,color:'var(--txt3)'}},'歳')
+              )
+            ),
+            E('td',{style:{padding:'5px 6px'}},
+              E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                E(InlineNum,{value:l.amount||0,min:0,step:10,
+                  onChange:v=>updI(inv.id,'lumpsums',(inv.lumpsums||[]).map(x=>x.id===l.id?{...x,amount:v}:x)),
+                  style:{width:80,height:30,padding:'0 6px',borderRadius:7,
+                    border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                    fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                E('span',{style:{fontSize:11,color:'var(--txt3)'}},'万円')
+              )
+            ),
+            E('td',{style:{padding:'5px 4px',textAlign:'center'}},
+              (inv.lumpsums||[]).length>1&&E('button',{
+                onClick:()=>updI(inv.id,'lumpsums',(inv.lumpsums||[]).filter(x=>x.id!==l.id)),
+                style:{border:'none',background:'transparent',color:'var(--ng-txt)',fontSize:14,cursor:'pointer',padding:'0 3px'}
+              },'×')
+            )
+          )
+        ))
+      ),
+      (inv.lumpsums||[]).some(l=>l.age!=null&&l.amount>0)&&E('div',{style:{
+        padding:'8px 10px',borderRadius:7,
+        background:'rgba(55,138,221,.08)',border:'.5px solid rgba(55,138,221,.2)',
+        fontSize:11,color:'var(--txt2)',lineHeight:1.7}},
+        (inv.lumpsums||[]).filter(l=>l.age!=null&&l.amount>0)
+          .map(l=>`💰 ${l.age}歳：${l.amount.toLocaleString()}万円`).join('　')
+      )
+    ),
+    E('div',{style:{marginTop:10,paddingTop:10,borderTop:'.5px solid var(--bdr)',
+      fontSize:11,color:'var(--txt3)',display:'flex',justifyContent:'space-between'}},
+      E('span',null,'10年後の予測評価額'),
+      E('span',{style:{color:'#0F6E56',fontWeight:600}},`${pred10.toLocaleString()}万円`)
+    )
+  );
+}
+
+/* ── メインApp ── */
+function App(){
+  const[d,setD]=useState(()=>{
+    try{const s=localStorage.getItem(STORE);if(s){const p=JSON.parse(s);return{...DEF,...p,actuals:p.actuals||{},invest:p.invest||DEF.invest,incomeRanges:p.incomeRanges||DEF.incomeRanges,spouseIncomeRanges:p.spouseIncomeRanges||DEF.spouseIncomeRanges,expenseRanges:p.expenseRanges||DEF.expenseRanges,housingExtras:p.housingExtras||DEF.housingExtras,mySavings:p.mySavings??p.savings??DEF.mySavings,spouseSavings:p.spouseSavings??DEF.spouseSavings,myPensionAge:p.myPensionAge||DEF.myPensionAge,myPensionMonthly:p.myPensionMonthly||DEF.myPensionMonthly,spousePensionAge:p.spousePensionAge||DEF.spousePensionAge,spousePensionMonthly:p.spousePensionMonthly||DEF.spousePensionMonthly};}}catch{}
+    return DEF;
+  });
+  const[tab,setTab]=useState("dashboard");
+  const[diagOpen,setDiagOpen]=useState(true);
+  const[isMobile,setIsMobile]=useState(()=>window.innerWidth<=600);
+
+  // タブごとのスクロール位置を記憶
+  const tabScrolls=useRef({});
+  const prevTab=useRef(tab);
+
+  // タブ切り替え時：現在のスクロール位置を保存し、新タブの位置を復元
+  const switchTab=useCallback(newTab=>{
+    tabScrolls.current[prevTab.current]=window.scrollY;
+    setTab(newTab);
+    requestAnimationFrame(()=>{
+      window.scrollTo({top:tabScrolls.current[newTab]||0,behavior:'instant'});
+      prevTab.current=newTab;
+    });
+  },[]);
+
+  // state更新時はスクロール位置を保持
+  const setDKeepScroll=useCallback(fn=>{
+    const y=window.scrollY;
+    setD(fn);
+    requestAnimationFrame(()=>window.scrollTo({top:y,behavior:'instant'}));
+  },[]);
+  useEffect(()=>{
+    const fn=()=>setIsMobile(window.innerWidth<=600);
+    window.addEventListener('resize',fn);
+    return()=>window.removeEventListener('resize',fn);
+  },[]);
+  useEffect(()=>{try{localStorage.setItem(STORE,JSON.stringify(d));}catch{}},[d]);
+
+  const upd=k=>v=>setD(p=>({...p,[k]:v}));
+  const updC=(id,k,v)=>setD(p=>({...p,children:p.children.map(c=>c.id===id?{...c,[k]:v}:c)}));
+  const updCC=(id,st,v)=>setD(p=>({...p,children:p.children.map(c=>c.id===id?{...c,costs:{...c.costs,[st]:v}}:c)}));
+  const updI=(id,k,v)=>setD(p=>({...p,invest:p.invest.map(i=>i.id===id?{...i,[k]:v}:i)}));
+
+  const proj=useMemo(()=>project(d),[d]);
+  const lp=useMemo(()=>loanCalc(d.propertyPrice,d.downPayment,d.loanYears,d.interestRate),[d]);
+  const diag=useMemo(()=>diagnose(d,proj,lp),[d,proj,lp]);
+
+  const loanAmt=Math.max(0,d.propertyPrice-d.downPayment);
+  const totalCost=Math.round(lp*d.loanYears*12);
+  const householdIncome=getIncome(d,d.myAge)+(d.hasSpouse?getSpouseIncome(d,d.spouseAge||0):0);
+  const curExp=getExpense(d,d.myAge);
+  const housingExtrasM=(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0);
+  const loanRatio=householdIncome>0?(lp+housingExtrasM)/householdIncome:0;
+  const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0);
+  const mNet=householdIncome-getExpense(d,d.myAge)-lp-totalInvM;
+  const last=proj[proj.length-1];
+  const atRetire=proj.find(r=>r.age===d.retireAge);
+  const totalInvBal=d.invest.reduce((s,i)=>s+i.balance,0);
+  const cashMinusRows=proj.filter(r=>r.cashMinus);
+  const firstCashMinus=cashMinusRows[0];
+
+  const lights={
+    housing:diag.housing.status,
+    retirement:diag.retirement.status,
+    monthly:diag.monthly.status,
+  };
+
+  const TABS=[{id:'dashboard',label:'ダッシュボード'},{id:'basic',label:'基本情報'},
+    {id:'housing',label:'住宅'},{id:'invest',label:'金融資産'},{id:'education',label:'教育'}];
+
+  const E=React.createElement;
+  const Card=({children,style})=>E('div',{className:'card',style},children);
+  const Sec=({title,children})=>E('div',{style:{marginBottom:20}},E('div',{className:'stitle'},title),children);
+
+  const[saveModal,setSaveModal]=useState(false);
+  const[saveFileName,setSaveFileName]=useState('');
+  const[saveMode,setSaveMode]=useState('data'); // 'data' | 'default'
+
+  /* データ保存（JSON） */
+  const doExport=async(fileName)=>{
+    const name=fileName.endsWith('.json')?fileName:fileName+'.json';
+    const json=JSON.stringify(d,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    if(window.showSaveFilePicker){
+      try{
+        const handle=await window.showSaveFilePicker({
+          suggestedName:name,
+          types:[{description:'JSONファイル',accept:{'application/json':['.json']}}]
+        });
+        const writable=await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      }catch(e){if(e.name==='AbortError')return;}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+  };
+
+  /* HTMLにデータを埋め込んで保存 */
+  const doExportDefault=async(fileName)=>{
+    const name=fileName.endsWith('.html')?fileName:fileName+'.html';
+    const html=document.documentElement.outerHTML;
+    const defStr=`const DEF=${JSON.stringify(d)};`;
+    const newHtml=html.replace(/const DEF=\{[\s\S]*?\};/,defStr);
+    const blob=new Blob([newHtml],{type:'text/html'});
+    if(window.showSaveFilePicker){
+      try{
+        const handle=await window.showSaveFilePicker({
+          suggestedName:name,
+          types:[{description:'HTMLファイル',accept:{'text/html':['.html']}}]
+        });
+        const writable=await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      }catch(e){if(e.name==='AbortError')return;}
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const exportData=()=>{
+    const date=new Date().toISOString().slice(0,10);
+    setSaveFileName(`family-plan-${date}`);
+    setSaveMode('data');
+    setSaveModal(true);
+  };
+  const exportAsDefault=()=>{
+    setSaveFileName('family-planner');
+    setSaveMode('default');
+    setSaveModal(true);
+  };
+  const importData=()=>{
+    const input=document.createElement('input');
+    input.type='file'; input.accept='.json';
+    input.onchange=e=>{
+      const file=e.target.files[0]; if(!file)return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        try{
+          const parsed=JSON.parse(ev.target.result);
+          setD({...DEF,...parsed,
+            actuals:parsed.actuals||{},
+            invest:parsed.invest||DEF.invest,
+            incomeRanges:parsed.incomeRanges||DEF.incomeRanges,
+            spouseIncomeRanges:parsed.spouseIncomeRanges||DEF.spouseIncomeRanges,
+            expenseRanges:parsed.expenseRanges||DEF.expenseRanges,
+            otherIncome:parsed.otherIncome||[],
+            otherExpense:parsed.otherExpense||[],
+          });
+          alert('データを読み込みました');
+        }catch{alert('ファイルの読み込みに失敗しました');}
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  return E('div',{style:{background:'var(--bg3)',minHeight:'100vh'}},
+
+    /* 保存モーダル */
+    saveModal&&E('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:100,
+      display:'flex',alignItems:'center',justifyContent:'center',padding:16}},
+      E('div',{style:{background:'var(--bg)',borderRadius:14,padding:'24px 24px',
+        width:'100%',maxWidth:380,boxShadow:'0 8px 32px rgba(0,0,0,.2)'}},
+        E('div',{style:{fontSize:14,fontWeight:700,color:'var(--txt)',marginBottom:6}},
+          saveMode==='default'?'🏠 デフォルトとして保存':'💾 データを保存'),
+        E('div',{style:{fontSize:12,color:'var(--txt3)',marginBottom:16,lineHeight:1.6}},
+          saveMode==='default'
+            ?'現在の入力内容をHTMLに埋め込んで保存します。次回このファイルを開いた時から自動的に表示されます。'
+            :'設定データをJSONファイルで保存します。「読込」で同じデータを復元できます。'
+        ),
+        E('div',{style:{fontSize:11,color:'var(--txt2)',marginBottom:4}},'ファイル名'),
+        E('input',{
+          type:'text',value:saveFileName,autoFocus:true,
+          onChange:e=>setSaveFileName(e.target.value),
+          onKeyDown:e=>{
+            if(e.key==='Enter'&&saveFileName){
+              saveMode==='default'?doExportDefault(saveFileName):doExport(saveFileName);
+              setSaveModal(false);
+            }
+            if(e.key==='Escape')setSaveModal(false);
+          },
+          style:{width:'100%',height:40,padding:'0 12px',borderRadius:8,
+            border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+            fontSize:14,color:'var(--txt)',marginBottom:6,outline:'2px solid #378ADD'}
+        }),
+        E('div',{style:{fontSize:11,color:'var(--txt3)',marginBottom:16}},
+          saveMode==='default'?'拡張子 .html が付きます':'拡張子 .json が付きます'
+        ),
+        E('div',{style:{display:'flex',gap:8,justifyContent:'flex-end'}},
+          E('button',{onClick:()=>setSaveModal(false),
+            style:{padding:'8px 16px',borderRadius:8,border:'.5px solid var(--bdr2)',
+              background:'transparent',fontSize:13,color:'var(--txt2)',cursor:'pointer'}
+          },'キャンセル'),
+          E('button',{
+            onClick:()=>{
+              if(saveFileName){
+                saveMode==='default'?doExportDefault(saveFileName):doExport(saveFileName);
+                setSaveModal(false);
+              }
+            },
+            disabled:!saveFileName,
+            style:{padding:'8px 18px',borderRadius:8,border:'none',
+              background:saveFileName?'#378ADD':'var(--txt3)',
+              fontSize:13,fontWeight:600,color:'#fff',cursor:saveFileName?'pointer':'default'}
+          },'保存')
+        )
+      )
+    ),
+
+    /* ヘッダー */
+    E('div',{style:{background:'var(--bg)',borderBottom:'.5px solid var(--bdr)',padding:'12px 18px',position:'sticky',top:0,zIndex:10}},
+      E('div',{style:{maxWidth:780,margin:'0 auto'}},
+        E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+          E('div',{style:{fontSize:15,fontWeight:700,color:'var(--txt)'}},'🏡 家族の資産プランナー'),
+          E('div',{style:{display:'flex',gap:6}},
+            E('button',{onClick:importData,style:{
+              fontSize:11,padding:'4px 10px',borderRadius:6,
+              border:'.5px solid var(--bdr2)',background:'transparent',
+              color:'var(--txt2)',cursor:'pointer',display:'flex',alignItems:'center',gap:4
+            }},
+              E('span',null,'📂'),isMobile?'':'読込'
+            ),
+            E('button',{onClick:exportData,style:{
+              fontSize:11,padding:'4px 10px',borderRadius:6,
+              border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+              color:'var(--txt)',cursor:'pointer',display:'flex',alignItems:'center',gap:4,fontWeight:500
+            }},
+              E('span',null,'💾'),isMobile?'':'保存'
+            ),
+            E('button',{onClick:exportAsDefault,style:{
+              fontSize:11,padding:'4px 10px',borderRadius:6,
+              border:'.5px solid #378ADD',background:'rgba(55,138,221,.1)',
+              color:'#185fa5',cursor:'pointer',display:'flex',alignItems:'center',gap:4,fontWeight:500
+            }},
+              E('span',null,'🏠'),isMobile?'':'デフォルト保存'
+            )
+          )
+        ),
+        E('div',{className:'tab-scroll'},
+          TABS.map(t=>E('button',{key:t.id,className:'tabBtn',onClick:()=>switchTab(t.id),
+            style:{background:tab===t.id?'var(--bg2)':'transparent',
+              fontWeight:tab===t.id?700:400,color:tab===t.id?'var(--txt)':'var(--txt2)'}},t.label))
+        )
+      )
+    ),
+
+    E('div',{style:{maxWidth:780,margin:'0 auto',padding:isMobile?'12px 10px':'18px 14px'}},
+
+      /* ── ダッシュボード ── */
+      tab==='dashboard'&&E('div',{className:'fade'},
+
+        /* 信号機 */
+        E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':' 1fr 1fr 1fr',gap:10,marginBottom:14}},
+          E(Light,{label:'住宅ローン負担',status:lights.housing,
+            value:`月${(lp+housingExtrasM).toFixed(1)}万円`,sub:`収入比 ${Math.round(loanRatio*100)}%`}),
+          E(Light,{label:'老後資産（80歳）',status:lights.retirement,
+            value:`${(last?.total??0).toLocaleString()}万円`,
+            sub:(last?.total??0)>=0?'問題なし':'不足の見込み'}),
+          E(Light,{label:'現在の月収支',status:lights.monthly,
+            value:`${mNet>=0?'+':''}${Math.round(mNet).toLocaleString()}万円`,
+            sub:mNet>=0?'黒字':'赤字'})
+        ),
+
+        /* 現金マイナス警告 */
+        firstCashMinus&&E('div',{style:{
+          background:'var(--ng-bg)',border:'.5px solid var(--ng-bdr)',
+          borderRadius:10,padding:'12px 16px',marginBottom:14,
+          display:'flex',alignItems:'flex-start',gap:10}},
+          E('span',{style:{fontSize:18,flexShrink:0}},'⚠️'),
+          E('div',null,
+            E('div',{style:{fontSize:13,fontWeight:700,color:'var(--ng-txt)',marginBottom:3}}),
+            E('div',{style:{fontSize:13,fontWeight:700,color:'var(--ng-txt)',marginBottom:3}},
+              `${firstCashMinus.age}歳時点で現金・預貯金がマイナスになります`),
+            E('div',{style:{fontSize:12,color:'var(--txt2)',lineHeight:1.6}},
+              `${firstCashMinus.yr}年（${firstCashMinus.age}歳）時点で現金残高が約${Math.abs(firstCashMinus.cash).toLocaleString()}万円不足します。積立額の見直し・入金元の変更・生活費の削減をご検討ください。`)
+          )
+        ),
+
+        /* 診断レポート */
+        E(DiagReport,{diag,open:diagOpen,setOpen:setDiagOpen}),
+
+        /* グラフ */
+        E(Card,{style:{marginBottom:14}},
+          E('div',{style:{fontSize:12,color:'var(--txt2)',marginBottom:10}},
+            `総資産推移（${d.myAge}歳〜80歳）`),
+          E(AssetChart,{proj}),
+          E('div',{style:{display:'flex',gap:16,marginTop:8,fontSize:11,color:'var(--txt2)',flexWrap:'wrap'}},
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:12,height:12,borderRadius:2,background:'rgba(55,138,221,.75)',display:'inline-block'}}),'現金・預貯金'),
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:12,height:12,borderRadius:2,background:'rgba(29,158,117,.75)',display:'inline-block'}}),'金融資産')
+          )
+        ),
+
+        /* 収支グラフ */
+        E(Card,{style:{marginBottom:14}},
+          E('div',{style:{fontSize:12,color:'var(--txt2)',marginBottom:10}},'年間収入・支出・収支'),
+          E(CashflowChart,{proj}),
+          E('div',{style:{display:'flex',gap:16,marginTop:8,fontSize:11,color:'var(--txt2)'}},
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:20,height:3,background:'#378ADD',borderRadius:2,display:'inline-block'}}),'収入'),
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:20,height:3,background:'#EF9F27',borderRadius:2,display:'inline-block'}}),'支出'),
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:12,height:12,borderRadius:2,background:'rgba(29,158,117,.65)',display:'inline-block'}}),'収支（黒字）'),
+            E('span',{style:{display:'flex',alignItems:'center',gap:4}},
+              E('span',{style:{width:12,height:12,borderRadius:2,background:'rgba(163,45,45,.55)',display:'inline-block'}}),'収支（赤字）')
+          )
+        ),
+
+        /* 資産内訳 */
+        E(Card,null,
+          E('div',{className:'stitle'},'現在の資産内訳'),
+          E('div',{style:{display:'flex',flexDirection:isMobile?'column':'row',alignItems:'center',gap:20}},
+            /* 円グラフ */
+            E('div',{style:{width:isMobile?'100%':200,flexShrink:0}},
+              E(AssetPieChart,{slices:(()=>{
+                const items=[];
+                const ms=d.mySavings||0;
+                const ss=d.hasSpouse?(d.spouseSavings||0):0;
+                const myInv=d.invest.filter(i=>i.owner!=='spouse').reduce((s,i)=>s+i.balance,0);
+                const spInv=d.hasSpouse?d.invest.filter(i=>i.owner==='spouse').reduce((s,i)=>s+i.balance,0):0;
+                if(ms>0)items.push({label:'現金（本人）',value:ms,color:'#378ADD'});
+                if(ss>0)items.push({label:'現金（配偶者）',value:ss,color:'#60A5FA'});
+                if(myInv>0)items.push({label:'金融資産（本人）',value:myInv,color:'#1D9E75'});
+                if(spInv>0)items.push({label:'金融資産（配偶者）',value:spInv,color:'#34D399'});
+                if(items.length===0)items.push({label:'資産なし',value:1,color:'var(--txt3)'});
+                return items;
+              })()})
+            ),
+            /* 凡例＋数値 */
+            E('div',{style:{flex:1,width:'100%'}},
+              (()=>{
+                const ms=d.mySavings||0;
+                const ss=d.hasSpouse?(d.spouseSavings||0):0;
+                const myInv=d.invest.filter(i=>i.owner!=='spouse').reduce((s,i)=>s+i.balance,0);
+                const spInv=d.hasSpouse?d.invest.filter(i=>i.owner==='spouse').reduce((s,i)=>s+i.balance,0):0;
+                const total=(ms+ss+myInv+spInv)||1;
+                const rows=[
+                  ms>0&&{label:'現金（本人）',value:ms,color:'#378ADD'},
+                  (d.hasSpouse&&ss>0)&&{label:'現金（配偶者）',value:ss,color:'#60A5FA'},
+                  myInv>0&&{label:'金融資産（本人）',value:myInv,color:'#1D9E75'},
+                  (d.hasSpouse&&spInv>0)&&{label:'金融資産（配偶者）',value:spInv,color:'#34D399'},
+                ].filter(Boolean);
+                return E('div',null,
+                  rows.map((r,i)=>
+                    E('div',{key:i,style:{display:'flex',justifyContent:'space-between',
+                      alignItems:'center',padding:'6px 0',
+                      borderBottom:i<rows.length-1?'.5px solid var(--bdr)':'none'}},
+                      E('div',{style:{display:'flex',alignItems:'center',gap:8}},
+                        E('span',{style:{width:10,height:10,borderRadius:'50%',
+                          background:r.color,display:'inline-block',flexShrink:0}}),
+                        E('span',{style:{fontSize:12,color:'var(--txt2)'}},r.label)
+                      ),
+                      E('div',{style:{textAlign:'right'}},
+                        E('div',{style:{fontSize:13,fontWeight:600,color:'var(--txt)'}},
+                          `${r.value.toLocaleString()}万円`),
+                        E('div',{style:{fontSize:10,color:'var(--txt3)'}},
+                          `${Math.round(r.value/total*100)}%`)
+                      )
+                    )
+                  ),
+                  E('div',{style:{display:'flex',justifyContent:'space-between',
+                    alignItems:'center',padding:'8px 0 0',marginTop:4}},
+                    E('span',{style:{fontSize:12,fontWeight:600,color:'var(--txt)'}},'合計'),
+                    E('span',{style:{fontSize:15,fontWeight:700,color:'var(--txt)'}},
+                      `${(ms+ss+myInv+spInv).toLocaleString()}万円`)
+                  )
+                );
+              })()
+            )
+          )
+        )
+      ),
+
+      /* ── 基本情報 ── */
+      tab==='basic'&&E('div',{className:'fade'},
+
+        /* ① プロフィール */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#378ADD',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'1'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'プロフィール')
+          ),
+          E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:12}},
+            E(Card,null,
+              E('div',{style:{display:'flex',alignItems:'center',gap:6,marginBottom:14}},
+                E('span',{style:{fontSize:16}},'👤'),
+                E('span',{style:{fontSize:13,fontWeight:600,color:'var(--txt)'}},'本人')
+              ),
+              E(NF,{label:'現在の年齢',value:d.myAge,onChange:upd('myAge'),unit:'歳',min:20,max:70}),
+              E(NF,{label:'退職予定年齢',value:d.retireAge,onChange:upd('retireAge'),unit:'歳',min:50,max:75}),
+              E('div',{style:{marginTop:8,padding:'8px 10px',borderRadius:8,
+                background:'var(--bg2)',fontSize:11,color:'var(--txt3)'}},
+                `シミュレーション：${d.myAge}歳〜80歳（残り${80-d.myAge}年）`
+              )
+            ),
+            E(Card,null,
+              E('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}},
+                E('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                  E('span',{style:{fontSize:16}},'👤'),
+                  E('span',{style:{fontSize:13,fontWeight:600,color:'var(--txt)'}},'配偶者')
+                ),
+                E('label',{style:{display:'flex',alignItems:'center',gap:6,cursor:'pointer'}},
+                  E('div',{style:{
+                    width:36,height:20,borderRadius:10,position:'relative',
+                    background:d.hasSpouse?'#378ADD':'var(--txt3)',
+                    transition:'background .2s',flexShrink:0
+                  }},
+                    E('div',{style:{
+                      width:16,height:16,borderRadius:'50%',background:'#fff',
+                      position:'absolute',top:2,
+                      left:d.hasSpouse?18:2,
+                      transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'
+                    }})
+                  ),
+                  E('input',{type:'checkbox',checked:!!d.hasSpouse,
+                    onChange:e=>setD(p=>({...p,hasSpouse:e.target.checked})),
+                    style:{position:'absolute',opacity:0,width:0,height:0}})
+                )
+              ),
+              d.hasSpouse
+                ? E('div',null,
+                    E(NF,{label:'現在の年齢',value:d.spouseAge||0,onChange:upd('spouseAge'),unit:'歳',min:20,max:70}),
+                    E(NF,{label:'退職予定年齢',value:d.spouseRetireAge||60,onChange:upd('spouseRetireAge'),unit:'歳',min:40,max:75}),
+                    E('div',{style:{marginTop:8,padding:'8px 10px',borderRadius:8,
+                      background:'var(--bg2)',fontSize:11,color:'var(--txt3)'}},
+                      `退職まで約${(d.spouseRetireAge||60)-(d.spouseAge||0)}年`
+                    )
+                  )
+                : E('div',{style:{padding:'20px 0',textAlign:'center',color:'var(--txt3)',fontSize:12}},
+                    '配偶者なし'
+                  )
+            )
+          )
+        ),
+
+        /* ② 収入 */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#378ADD',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'2'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'年収（手取り・年齢別）'),
+            E('span',{style:{fontSize:11,color:'var(--txt3)',marginLeft:4}},'退職年齢を超えると自動でゼロになります')
+          ),
+          E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:12}},
+            /* 本人収入テーブル */
+            E(Card,null,
+              E('div',{style:{fontSize:12,fontWeight:600,color:'var(--txt)',marginBottom:12}},
+                '本人　',
+                E('span',{style:{fontSize:11,fontWeight:400,color:'var(--txt3)'}},
+                  `現在：${Math.round(getIncome(d,d.myAge)*12)}万円/年`
+                )
+              ),
+              E('table',{style:{width:'100%',borderCollapse:'collapse'}},
+                E('thead',null,
+                  E('tr',null,
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'開始'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'終了'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'年収'),
+                    E('th',{style:{borderBottom:'.5px solid var(--bdr2)',padding:'0 6px 6px'}})
+                  )
+                ),
+                E('tbody',null,
+                  (d.incomeRanges||[]).map(r=>
+                    E('tr',{key:r.id},
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.fromAge,min:d.myAge,max:99,step:1,
+                            onChange:v=>setD(p=>({...p,incomeRanges:p.incomeRanges.map(x=>x.id===r.id?{...x,fromAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.toAge,min:r.fromAge+1,max:100,step:1,
+                            onChange:v=>setD(p=>({...p,incomeRanges:p.incomeRanges.map(x=>x.id===r.id?{...x,toAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E(InlineNum,{value:r.amount,min:0,step:10,
+                            onChange:v=>setD(p=>({...p,incomeRanges:p.incomeRanges.map(x=>x.id===r.id?{...x,amount:v}:x)})),
+                            style:{width:76,height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'万円')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 2px',textAlign:'center'}},
+                        E('button',{
+                          onClick:()=>setD(p=>({...p,incomeRanges:p.incomeRanges.filter(x=>x.id!==r.id)})),
+                          disabled:(d.incomeRanges||[]).length<=1,
+                          style:{border:'none',background:'transparent',fontSize:14,cursor:'pointer',
+                            color:(d.incomeRanges||[]).length<=1?'var(--txt3)':'var(--ng-txt)',padding:'0 2px'}
+                        },'×')
+                      )
+                    )
+                  )
+                )
+              ),
+              E('button',{
+                onClick:()=>setD(p=>{
+                  const last=p.incomeRanges[p.incomeRanges.length-1];
+                  const nf=Math.min(last.toAge+1,99);
+                  return{...p,incomeRanges:[...p.incomeRanges,{id:Date.now(),fromAge:nf,toAge:Math.min(nf+9,100),amount:last.amount}]};
+                }),
+                style:{marginTop:10,fontSize:11,padding:'4px 10px',borderRadius:6,
+                  border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)',cursor:'pointer'}
+              },'+ 期間を追加')
+            ),
+
+            /* 配偶者収入テーブル */
+            d.hasSpouse&&E(Card,null,
+              E('div',{style:{fontSize:12,fontWeight:600,color:'var(--txt)',marginBottom:12}},
+                '配偶者　',
+                E('span',{style:{fontSize:11,fontWeight:400,color:'var(--txt3)'}},
+                  `現在：${Math.round(getSpouseIncome(d,d.spouseAge||0)*12)}万円/年`
+                )
+              ),
+              E('table',{style:{width:'100%',borderCollapse:'collapse'}},
+                E('thead',null,
+                  E('tr',null,
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'開始'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'終了'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'年収'),
+                    E('th',{style:{borderBottom:'.5px solid var(--bdr2)',padding:'0 6px 6px'}})
+                  )
+                ),
+                E('tbody',null,
+                  (d.spouseIncomeRanges||[]).map(r=>
+                    E('tr',{key:r.id},
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.fromAge,min:d.spouseAge||0,max:99,step:1,
+                            onChange:v=>setD(p=>({...p,spouseIncomeRanges:p.spouseIncomeRanges.map(x=>x.id===r.id?{...x,fromAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.toAge,min:r.fromAge+1,max:100,step:1,
+                            onChange:v=>setD(p=>({...p,spouseIncomeRanges:p.spouseIncomeRanges.map(x=>x.id===r.id?{...x,toAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E(InlineNum,{value:r.amount,min:0,step:10,
+                            onChange:v=>setD(p=>({...p,spouseIncomeRanges:p.spouseIncomeRanges.map(x=>x.id===r.id?{...x,amount:v}:x)})),
+                            style:{width:76,height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'万円')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 2px',textAlign:'center'}},
+                        E('button',{
+                          onClick:()=>setD(p=>({...p,spouseIncomeRanges:p.spouseIncomeRanges.filter(x=>x.id!==r.id)})),
+                          disabled:(d.spouseIncomeRanges||[]).length<=1,
+                          style:{border:'none',background:'transparent',fontSize:14,cursor:'pointer',
+                            color:(d.spouseIncomeRanges||[]).length<=1?'var(--txt3)':'var(--ng-txt)',padding:'0 2px'}
+                        },'×')
+                      )
+                    )
+                  )
+                )
+              ),
+              E('button',{
+                onClick:()=>setD(p=>{
+                  const last=p.spouseIncomeRanges[p.spouseIncomeRanges.length-1];
+                  const nf=Math.min(last.toAge+1,99);
+                  return{...p,spouseIncomeRanges:[...p.spouseIncomeRanges,{id:Date.now(),fromAge:nf,toAge:Math.min(nf+9,100),amount:last.amount}]};
+                }),
+                style:{marginTop:10,fontSize:11,padding:'4px 10px',borderRadius:6,
+                  border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)',cursor:'pointer'}
+              },'+ 期間を追加')
+            )
+          )
+        ),
+
+        /* ③ 老後収入 */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#378ADD',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'3'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'老後収入（年金・その他）'),
+            E('span',{style:{fontSize:11,color:'var(--txt3)',marginLeft:4}},'受給開始年齢以降に毎月加算されます')
+          ),
+          E('div',{style:{display:'grid',gridTemplateColumns:(!isMobile&&d.hasSpouse)?'1fr 1fr':'1fr',gap:12}},
+            /* 本人 */
+            E(Card,null,
+              E('div',{style:{fontSize:12,fontWeight:600,color:'var(--txt)',marginBottom:14}},'本人'),
+              E(NF,{label:'受給開始年齢',value:d.myPensionAge||65,onChange:upd('myPensionAge'),unit:'歳',min:60,max:75}),
+              E(NF,{label:'年額',value:d.myPensionMonthly||0,onChange:upd('myPensionMonthly'),unit:'万円/年'}),
+              E('div',{style:{marginTop:8,padding:'8px 10px',borderRadius:8,
+                background:'var(--bg2)',fontSize:11,color:'var(--txt3)'}},
+                `${d.myPensionAge||65}歳から年${d.myPensionMonthly||0}万円`
+              )
+            ),
+            /* 配偶者（hasSpouseがtrueのときのみ） */
+            d.hasSpouse&&E(Card,null,
+              E('div',{style:{fontSize:12,fontWeight:600,color:'var(--txt)',marginBottom:14}},'配偶者'),
+              E(NF,{label:'受給開始年齢',value:d.spousePensionAge||65,onChange:upd('spousePensionAge'),unit:'歳',min:60,max:75}),
+              E(NF,{label:'年額',value:d.spousePensionMonthly||0,onChange:upd('spousePensionMonthly'),unit:'万円/年'}),
+              E('div',{style:{marginTop:8,padding:'8px 10px',borderRadius:8,
+                background:'var(--bg2)',fontSize:11,color:'var(--txt3)'}},
+                `${d.spousePensionAge||65}歳から年${d.spousePensionMonthly||0}万円`
+              )
+            )
+          )
+        ),
+
+        /* ④ 支出 */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#378ADD',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'4'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'支出（月間・年齢別）')
+          ),
+          E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:12}},
+            E(Card,null,
+              E('div',{style:{fontSize:12,fontWeight:600,color:'var(--txt)',marginBottom:12}},
+                '生活費　',
+                E('span',{style:{fontSize:11,fontWeight:400,color:'var(--txt3)'}},
+                  `現在：${getExpense(d,d.myAge)}万円/月`
+                )
+              ),
+              E('table',{style:{width:'100%',borderCollapse:'collapse'}},
+                E('thead',null,
+                  E('tr',null,
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'開始'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'終了'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'月間'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)',color:'var(--txt3)'}},'年間'),
+                    E('th',{style:{borderBottom:'.5px solid var(--bdr2)',padding:'0 6px 6px'}})
+                  )
+                ),
+                E('tbody',null,
+                  d.expenseRanges.map(r=>
+                    E('tr',{key:r.id},
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.fromAge,min:d.myAge,max:99,step:1,
+                            onChange:v=>setD(p=>({...p,expenseRanges:p.expenseRanges.map(x=>x.id===r.id?{...x,fromAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:r.toAge,min:r.fromAge+1,max:100,step:1,
+                            onChange:v=>setD(p=>({...p,expenseRanges:p.expenseRanges.map(x=>x.id===r.id?{...x,toAge:v}:x)})),
+                            style:{width:'100%',height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E(InlineNum,{value:r.amount,min:0,step:1,
+                            onChange:v=>setD(p=>({...p,expenseRanges:p.expenseRanges.map(x=>x.id===r.id?{...x,amount:v}:x)})),
+                            style:{width:64,height:32,padding:'0 6px',borderRadius:7,
+                              border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                              fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                          E('span',{style:{fontSize:10,color:'var(--txt3)',flexShrink:0}},'万')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 4px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E('span',{style:{fontSize:13,fontWeight:500,color:'var(--txt2)',
+                            background:'var(--bg2)',borderRadius:7,padding:'0 8px',height:32,
+                            display:'flex',alignItems:'center',whiteSpace:'nowrap'}},
+                            `${(r.amount*12).toLocaleString()}万`
+                          )
+                        )
+                      ),
+                      E('td',{style:{padding:'6px 2px',textAlign:'center'}},
+                        E('button',{
+                          onClick:()=>setD(p=>({...p,expenseRanges:p.expenseRanges.filter(x=>x.id!==r.id)})),
+                          disabled:d.expenseRanges.length<=1,
+                          style:{border:'none',background:'transparent',fontSize:14,cursor:'pointer',
+                            color:d.expenseRanges.length<=1?'var(--txt3)':'var(--ng-txt)',padding:'0 2px'}
+                        },'×')
+                      )
+                    )
+                  )
+                )
+              ),
+              E('button',{
+                onClick:()=>setD(p=>{
+                  const last=p.expenseRanges[p.expenseRanges.length-1];
+                  const nf=Math.min(last.toAge+1,99);
+                  return{...p,expenseRanges:[...p.expenseRanges,{id:Date.now(),fromAge:nf,toAge:Math.min(nf+9,100),amount:last.amount}]};
+                }),
+                style:{marginTop:10,fontSize:11,padding:'4px 10px',borderRadius:6,
+                  border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)',cursor:'pointer'}
+              },'+ 期間を追加')
+            )
+          )
+        ),
+
+        /* ⑤ その他収入 */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#1D9E75',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'5'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'その他収入'),
+            E('span',{style:{fontSize:11,color:'var(--txt3)',marginLeft:4}},'退職金・相続・売却益など一時的な収入')
+          ),
+          E(Card,null,
+            (d.otherIncome||[]).length===0
+              ? E('div',{style:{textAlign:'center',color:'var(--txt3)',fontSize:12,padding:'16px 0'}},'登録されていません')
+              : E('table',{style:{width:'100%',borderCollapse:'collapse',marginBottom:8}},
+                  E('thead',null,E('tr',null,
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'left',borderBottom:'.5px solid var(--bdr2)'}},'名称'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'left',borderBottom:'.5px solid var(--bdr2)'}},'対象者'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'年齢'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'金額'),
+                    E('th',{style:{borderBottom:'.5px solid var(--bdr2)',padding:'0 6px 8px'}})
+                  )),
+                  E('tbody',null,(d.otherIncome||[]).map((item,i)=>
+                    E('tr',{key:item.id,style:{background:i%2===0?'transparent':'var(--bg2)'}},
+                      E('td',{style:{padding:'6px'}},
+                        E(InlineText,{value:item.name,onChange:v=>setD(p=>({...p,otherIncome:p.otherIncome.map(x=>x.id===item.id?{...x,name:v}:x)})),
+                          style:{width:'100%',height:30,padding:'0 8px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)'}})
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('select',{value:item.person||'my',
+                          onChange:e=>setD(p=>({...p,otherIncome:p.otherIncome.map(x=>x.id===item.id?{...x,person:e.target.value,personAge:x.personAge??x.age??d.myAge}:x)})),
+                          style:{height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)',cursor:'pointer'}},
+                          E('option',{value:'my'},'本人'),
+                          d.hasSpouse&&E('option',{value:'spouse'},'配偶者'),
+                          ...d.children.map(c=>E('option',{key:c.id,value:String(c.id)},c.name))
+                        )
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:item.personAge??item.age??d.myAge,min:0,max:100,step:1,
+                            onChange:v=>setD(p=>({...p,otherIncome:p.otherIncome.map(x=>x.id===item.id?{...x,personAge:v}:x)})),
+                            style:{width:48,height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E(InlineNum,{value:item.amount,min:0,step:10,
+                            onChange:v=>setD(p=>({...p,otherIncome:p.otherIncome.map(x=>x.id===item.id?{...x,amount:v}:x)})),
+                            style:{width:80,height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'万円')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px',textAlign:'center'}},
+                        E('button',{onClick:()=>setD(p=>({...p,otherIncome:p.otherIncome.filter(x=>x.id!==item.id)})),
+                          style:{border:'none',background:'transparent',color:'var(--ng-txt)',fontSize:15,cursor:'pointer',padding:'0 4px'}},'×')
+                      )
+                    )
+                  ))
+                ),
+            E('button',{
+              onClick:()=>setD(p=>({...p,otherIncome:[...(p.otherIncome||[]),{id:Date.now(),name:'退職金',age:d.retireAge,amount:1000}]})),
+              style:{fontSize:12,padding:'5px 12px',borderRadius:6,border:'.5px solid var(--bdr2)',
+                background:'transparent',color:'var(--txt)',cursor:'pointer',marginTop:(d.otherIncome||[]).length>0?8:0}
+            },'+ 収入を追加')
+          )
+        ),
+
+        /* ⑥ その他支出 */
+        E('div',{style:{marginBottom:20}},
+          E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10}},
+            E('span',{style:{width:20,height:20,borderRadius:'50%',background:'#EF9F27',
+              color:'#fff',fontSize:11,fontWeight:700,display:'inline-flex',
+              alignItems:'center',justifyContent:'center',flexShrink:0}},'6'),
+            E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'その他支出'),
+            E('span',{style:{fontSize:11,color:'var(--txt3)',marginLeft:4}},'車・リフォーム・旅行など一時的な支出')
+          ),
+          E(Card,null,
+            (d.otherExpense||[]).length===0
+              ? E('div',{style:{textAlign:'center',color:'var(--txt3)',fontSize:12,padding:'16px 0'}},'登録されていません')
+              : E('table',{style:{width:'100%',borderCollapse:'collapse',marginBottom:8}},
+                  E('thead',null,E('tr',null,
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'left',borderBottom:'.5px solid var(--bdr2)'}},'名称'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'left',borderBottom:'.5px solid var(--bdr2)'}},'対象者'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'年齢'),
+                    E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 8px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'金額'),
+                    E('th',{style:{borderBottom:'.5px solid var(--bdr2)',padding:'0 6px 8px'}})
+                  )),
+                  E('tbody',null,(d.otherExpense||[]).map((item,i)=>
+                    E('tr',{key:item.id,style:{background:i%2===0?'transparent':'var(--bg2)'}},
+                      E('td',{style:{padding:'6px'}},
+                        E(InlineText,{value:item.name,onChange:v=>setD(p=>({...p,otherExpense:p.otherExpense.map(x=>x.id===item.id?{...x,name:v}:x)})),
+                          style:{width:'100%',height:30,padding:'0 8px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)'}})
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('select',{value:item.person||'my',
+                          onChange:e=>setD(p=>({...p,otherExpense:p.otherExpense.map(x=>x.id===item.id?{...x,person:e.target.value,personAge:x.personAge??x.age??d.myAge}:x)})),
+                          style:{height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)',cursor:'pointer'}},
+                          E('option',{value:'my'},'本人'),
+                          d.hasSpouse&&E('option',{value:'spouse'},'配偶者'),
+                          ...d.children.map(c=>E('option',{key:c.id,value:String(c.id)},c.name))
+                        )
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3}},
+                          E(InlineNum,{value:item.personAge??item.age??d.myAge,min:0,max:100,step:1,
+                            onChange:v=>setD(p=>({...p,otherExpense:p.otherExpense.map(x=>x.id===item.id?{...x,personAge:v}:x)})),
+                            style:{width:48,height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'歳')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px'}},
+                        E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                          E(InlineNum,{value:item.amount,min:0,step:10,
+                            onChange:v=>setD(p=>({...p,otherExpense:p.otherExpense.map(x=>x.id===item.id?{...x,amount:v}:x)})),
+                            style:{width:80,height:30,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                          E('span',{style:{fontSize:11,color:'var(--txt3)'}},'万円')
+                        )
+                      ),
+                      E('td',{style:{padding:'6px',textAlign:'center'}},
+                        E('button',{onClick:()=>setD(p=>({...p,otherExpense:p.otherExpense.filter(x=>x.id!==item.id)})),
+                          style:{border:'none',background:'transparent',color:'var(--ng-txt)',fontSize:15,cursor:'pointer',padding:'0 4px'}},'×')
+                      )
+                    )
+                  ))
+                ),
+            E('button',{
+              onClick:()=>setD(p=>({...p,otherExpense:[...(p.otherExpense||[]),{id:Date.now(),name:'車の購入',age:d.myAge+5,amount:300}]})),
+              style:{fontSize:12,padding:'5px 12px',borderRadius:6,border:'.5px solid var(--bdr2)',
+                background:'transparent',color:'var(--txt)',cursor:'pointer',marginTop:(d.otherExpense||[]).length>0?8:0}
+            },'+ 支出を追加')
+          )
+        )
+      ),
+
+      /* ── 住宅 ── */
+      tab==='housing'&&E('div',{className:'fade grid2'},
+        E(Card,null,
+          E(Sec,{title:'住宅ローン設定'},
+            E(NF,{label:'物件価格',value:d.propertyPrice,onChange:upd('propertyPrice'),unit:'万円',step:100}),
+            E(NF,{label:'頭金',value:d.downPayment,onChange:upd('downPayment'),unit:'万円',step:50}),
+            E(NF,{label:'借入額',value:loanAmt,onChange:()=>{},unit:'万円',note:'自動計算',readOnly:true}),
+            E(NF,{label:'ローン期間',value:d.loanYears,onChange:upd('loanYears'),unit:'年',min:10,max:35}),
+            E(NF,{label:'金利（年）',value:d.interestRate,onChange:upd('interestRate'),unit:'%',step:0.05,min:0}),
+            E(NF,{label:'購入予定年',value:d.purchaseYear,onChange:upd('purchaseYear'),unit:'年',min:CY,max:CY+15}),
+            E('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:4}},
+              [['総返済額',`${totalCost.toLocaleString()}万円`],
+               ['うち利息',`${Math.round(totalCost-loanAmt).toLocaleString()}万円`],
+               ['完済年',`${d.purchaseYear+d.loanYears}年`],
+               ['収入比',`${Math.round(loanRatio*100)}%`],
+              ].map(([l,v])=>E('div',{key:l,className:'kv'},
+                E('div',{className:'kl'},l),
+                E('div',{className:'kv2'},v)
+              ))
+            )
+          ),
+          E(Sec,{title:'追加費用（月額・購入後から継続）'},
+            E('div',{style:{fontSize:11,color:'var(--txt3)',marginBottom:10}},'管理費・修繕積立金・駐車場など毎月かかる費用を登録できます。'),
+            (d.housingExtras||[]).map((item,i)=>
+              E('div',{key:item.id,style:{display:'flex',alignItems:'center',gap:6,marginBottom:8}},
+                E(InlineText,{value:item.name,onChange:v=>setD(p=>({...p,housingExtras:p.housingExtras.map(x=>x.id===item.id?{...x,name:v}:x)})),
+                  style:{flex:1,height:32,padding:'0 8px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg2)',fontSize:13,color:'var(--txt)'}}),
+                E(InlineNum,{value:item.monthly,min:0,step:0.1,
+                  onChange:v=>setD(p=>({...p,housingExtras:p.housingExtras.map(x=>x.id===item.id?{...x,monthly:v}:x)})),
+                  style:{width:60,height:32,padding:'0 6px',borderRadius:7,border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:13,color:'var(--txt)',textAlign:'right'}}),
+                E('span',{style:{fontSize:11,color:'var(--txt2)',whiteSpace:'nowrap'}},'万円/月'),
+                E('button',{
+                  onClick:()=>setD(p=>({...p,housingExtras:p.housingExtras.filter(x=>x.id!==item.id)})),
+                  style:{border:'none',background:'transparent',color:'var(--ng-txt)',fontSize:15,cursor:'pointer',padding:'0 2px',flexShrink:0}
+                },'×')
+              )
+            ),
+            E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}},
+              E('button',{
+                onClick:()=>setD(p=>({...p,housingExtras:[...(p.housingExtras||[]),{id:Date.now(),name:'その他費用',monthly:1}]})),
+                style:{fontSize:12,padding:'4px 10px',borderRadius:6,border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)',cursor:'pointer'}
+              },'+ 追加'),
+              (d.housingExtras||[]).length>0&&E('div',{style:{fontSize:11,color:'var(--txt2)'}},
+                `合計 ${(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0).toFixed(1)}万円/月`
+              )
+            )
+          )
+        ),
+        E('div',null,
+          E(Card,{style:{marginBottom:12}},
+            E('div',{style:{fontSize:11,color:'var(--txt2)',marginBottom:4}},'月々の返済額（合計）'),
+            E('div',{style:{fontSize:36,fontWeight:700,color:'var(--txt)',marginBottom:4}},
+              (lp+(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0)).toFixed(1),
+              E('span',{style:{fontSize:14,color:'var(--txt2)',fontWeight:400}},'万円/月')),
+            E('div',{style:{fontSize:12,color:'var(--txt3)',marginBottom:14}},
+              (d.housingExtras||[]).length>0
+                ?`ローン ${lp.toFixed(1)}万円 ＋ 追加費用 ${(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0).toFixed(1)}万円`
+                :`元利均等返済`
+            ),
+            E('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+              [['総返済額',`${totalCost.toLocaleString()}万円`,false],
+               ['うち利息',`${Math.round(totalCost-loanAmt).toLocaleString()}万円`,false],
+               ['完済年',`${d.purchaseYear+d.loanYears}年`,false],
+               ...(d.housingExtras||[]).map(e=>[e.name,`${e.monthly.toFixed(1)}万円/月`,false]),
+              ].map(([l,v,warn])=>E('div',{key:l,className:'kv'},
+                E('div',{className:'kl'},l),E('div',{className:warn?'kv2 red':'kv2'},v)))
+            )
+          ),
+          E(Card,null,
+            E('div',{style:{fontSize:11,color:'var(--txt2)',marginBottom:8}},'収入に対する負担率'),
+            E('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:6}},
+              E('div',{style:{flex:1,height:6,background:'var(--bg2)',borderRadius:3,overflow:'hidden'}},
+                E('div',{style:{width:`${Math.min(loanRatio*100,100)}%`,height:'100%',borderRadius:3,
+                  background:loanRatio<0.25?'#639922':loanRatio<0.35?'#BA7517':'#A32D2D',transition:'width .3s'}})
+              ),
+              E('span',{style:{fontSize:13,fontWeight:500,color:'var(--txt)',minWidth:32}},`${Math.round(loanRatio*100)}%`)
+            ),
+            E('div',{style:{fontSize:11,color:'var(--txt3)'}},'理想は25%以下・35%以上は要注意'),
+            /* 住宅の診断もここに表示 */
+            E('div',{style:{marginTop:12,padding:'10px 12px',borderRadius:8,
+              background:diag.housing.status==='green'?'var(--ok-bg)':diag.housing.status==='yellow'?'var(--wn-bg)':'var(--ng-bg)'}},
+              E('div',{style:{fontSize:11,fontWeight:600,marginBottom:4,
+                color:diag.housing.status==='green'?'var(--ok-txt)':diag.housing.status==='yellow'?'var(--wn-txt)':'var(--ng-txt)'}},
+                '💡 '+diag.housing.action)
+            )
+          )
+        )
+      ),
+
+      /* ── 金融資産 ── */
+      tab==='invest'&&E('div',{className:'fade'},
+        /* 上段：円グラフ */
+        E(Card,{style:{marginBottom:14}},
+          E('div',{className:'stitle'},'現在の資産内訳'),
+          E('div',{style:{display:'flex',flexDirection:isMobile?'column':'row',alignItems:'center',gap:20}},
+            E('div',{style:{width:isMobile?'100%':200,flexShrink:0}},
+              E(AssetPieChart,{slices:(()=>{
+                const ms=d.mySavings||0,ss=d.hasSpouse?(d.spouseSavings||0):0;
+                const myInv=d.invest.filter(i=>i.owner!=='spouse').reduce((s,i)=>s+i.balance,0);
+                const spInv=d.hasSpouse?d.invest.filter(i=>i.owner==='spouse').reduce((s,i)=>s+i.balance,0):0;
+                const items=[];
+                if(ms>0)items.push({label:'現金（本人）',value:ms,color:'#378ADD'});
+                if(ss>0)items.push({label:'現金（配偶者）',value:ss,color:'#60A5FA'});
+                if(myInv>0)items.push({label:'金融資産（本人）',value:myInv,color:'#1D9E75'});
+                if(spInv>0)items.push({label:'金融資産（配偶者）',value:spInv,color:'#34D399'});
+                if(items.length===0)items.push({label:'資産なし',value:1,color:'var(--txt3)'});
+                return items;
+              })()})
+            ),
+            E('div',{style:{flex:1,width:'100%'}},
+              (()=>{
+                const ms=d.mySavings||0,ss=d.hasSpouse?(d.spouseSavings||0):0;
+                const myInv=d.invest.filter(i=>i.owner!=='spouse').reduce((s,i)=>s+i.balance,0);
+                const spInv=d.hasSpouse?d.invest.filter(i=>i.owner==='spouse').reduce((s,i)=>s+i.balance,0):0;
+                const total=(ms+ss+myInv+spInv)||1;
+                const rows=[
+                  ms>0&&{label:'現金（本人）',value:ms,color:'#378ADD'},
+                  (d.hasSpouse&&ss>0)&&{label:'現金（配偶者）',value:ss,color:'#60A5FA'},
+                  myInv>0&&{label:'金融資産（本人）',value:myInv,color:'#1D9E75'},
+                  (d.hasSpouse&&spInv>0)&&{label:'金融資産（配偶者）',value:spInv,color:'#34D399'},
+                ].filter(Boolean);
+                return E('div',null,
+                  rows.map((r,i)=>
+                    E('div',{key:i,style:{display:'flex',justifyContent:'space-between',
+                      alignItems:'center',padding:'6px 0',
+                      borderBottom:i<rows.length-1?'.5px solid var(--bdr)':'none'}},
+                      E('div',{style:{display:'flex',alignItems:'center',gap:8}},
+                        E('span',{style:{width:10,height:10,borderRadius:'50%',background:r.color,display:'inline-block',flexShrink:0}}),
+                        E('span',{style:{fontSize:12,color:'var(--txt2)'}},r.label)
+                      ),
+                      E('div',{style:{textAlign:'right'}},
+                        E('div',{style:{fontSize:13,fontWeight:600,color:'var(--txt)'}},`${r.value.toLocaleString()}万円`),
+                        E('div',{style:{fontSize:10,color:'var(--txt3)'}},`${Math.round(r.value/total*100)}%`)
+                      )
+                    )
+                  ),
+                  E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0 0',marginTop:4}},
+                    E('span',{style:{fontSize:12,fontWeight:600,color:'var(--txt)'}},'合計'),
+                    E('span',{style:{fontSize:15,fontWeight:700,color:'var(--txt)'}},`${(ms+ss+myInv+spInv).toLocaleString()}万円`)
+                  )
+                );
+              })()
+            )
+          )
+        ),
+
+        /* 金融資産別推移グラフ */
+        d.invest.length>0&&E(Card,{style:{marginBottom:14}},
+          E('div',{className:'stitle'},'金融資産別 評価額推移'),
+          E(InvestLineChart,{proj,invest:d.invest})
+        ),
+
+        /* 本人の金融資産 */
+        E(Card,{style:{marginBottom:14}},
+          E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+            E('div',{style:{display:'flex',alignItems:'center',gap:6}},
+              E('span',{style:{fontSize:14}},'👤'),
+              E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'本人の金融資産')
+            ),
+            E('button',{
+              onClick:()=>setDKeepScroll(p=>({...p,invest:[...p.invest,makeInvest(Math.max(...p.invest.map(i=>i.id))+1,'my')]})),
+              style:{fontSize:12,padding:'4px 10px',borderRadius:6,border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)'}
+            },'+ 追加')
+          ),
+          E('div',{style:{marginBottom:12,paddingBottom:12,borderBottom:'.5px solid var(--bdr)'}},
+            E(NF,{label:'現金・預貯金の残高',value:d.mySavings||0,onChange:upd('mySavings'),unit:'万円',step:10})
+          ),
+          d.invest.filter(i=>i.owner!=='spouse').length===0
+            ? E('div',{style:{textAlign:'center',color:'var(--txt3)',fontSize:12,padding:'8px 0'}},'金融資産の登録なし')
+            : E('div',null,
+                d.invest.filter(i=>i.owner!=='spouse').map(inv=>E(InvestCard,{key:inv.id,inv,d,isMobile,updI,setD}))
+              )
+        ),
+
+        /* 配偶者の金融資産（hasSpouseのときのみ） */
+        d.hasSpouse&&E(Card,null,
+          E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+            E('div',{style:{display:'flex',alignItems:'center',gap:6}},
+              E('span',{style:{fontSize:14}},'👤'),
+              E('span',{style:{fontSize:13,fontWeight:700,color:'var(--txt)'}},'配偶者の金融資産')
+            ),
+            E('button',{
+              onClick:()=>setDKeepScroll(p=>({...p,invest:[...p.invest,makeInvest(Math.max(...p.invest.map(i=>i.id))+1,'spouse')]})),
+              style:{fontSize:12,padding:'4px 10px',borderRadius:6,border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)'}
+            },'+ 追加')
+          ),
+          E('div',{style:{marginBottom:12,paddingBottom:12,borderBottom:'.5px solid var(--bdr)'}},
+            E(NF,{label:'現金・預貯金の残高',value:d.spouseSavings||0,onChange:upd('spouseSavings'),unit:'万円',step:10})
+          ),
+          d.invest.filter(i=>i.owner==='spouse').length===0
+            ? E('div',{style:{textAlign:'center',color:'var(--txt3)',fontSize:12,padding:'8px 0'}},'金融資産の登録なし')
+            : E('div',null,
+                d.invest.filter(i=>i.owner==='spouse').map(inv=>E(InvestCard,{key:inv.id,inv,d,isMobile,updI,setD}))
+              )
+        )
+      ),
+
+      /* ── 教育 ── */
+      tab==='education'&&E('div',{className:'fade'},
+        E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+          E('div',{style:{fontSize:12,color:'var(--txt2)'}},'子供ごとの教育費・進学ステージを設定してください。'),
+          E('button',{
+            onClick:()=>setD(p=>({...p,children:[...p.children,makeChild(Math.max(...p.children.map(c=>c.id))+1)]})),
+            style:{fontSize:12,padding:'4px 10px',borderRadius:6,border:'.5px solid var(--bdr2)',background:'transparent',color:'var(--txt)',whiteSpace:'nowrap'}
+          },'+ 子供を追加')
+        ),
+        E('div',{style:{display:'flex',flexDirection:'column',gap:10}},
+          d.children.map(child=>{
+            const stages=EDU_STAGES.filter(s=>{
+              if(s.id==='university'&&child.maxLevel==='high')return false;
+              if(s.id==='graduate'&&child.maxLevel!=='graduate')return false;
+              return true;
+            });
+            return E(Card,{key:child.id},
+              /* 子供ヘッダー行 */
+              E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}},
+                E('div',{style:{display:'flex',alignItems:'center',gap:10}},
+                  E(InlineText,{value:child.name,onChange:v=>updC(child.id,'name',v),
+                    style:{fontWeight:600,fontSize:14,height:32,padding:'0 8px',borderRadius:7,
+                      border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+                      color:'var(--txt)',width:90}}),
+                  E('div',{style:{display:'flex',alignItems:'center',gap:4}},
+                    E('span',{style:{fontSize:11,color:'var(--txt3)'}},'生まれ年'),
+                    E(InlineNum,{value:child.birthYear,min:CY-20,max:CY+5,step:1,
+                      onChange:v=>updC(child.id,'birthYear',v),
+                      style:{width:64,height:28,padding:'0 7px',borderRadius:7,
+                        border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+                        fontSize:13,color:'var(--txt)',textAlign:'center'}}),
+                    E('span',{style:{fontSize:11,color:'var(--txt3)'}},'年')
+                  )
+                ),
+                E('div',{style:{display:'flex',gap:6,alignItems:'center'}},
+                  E('select',{value:child.maxLevel,onChange:e=>updC(child.id,'maxLevel',e.target.value),
+                    style:{fontSize:12,padding:'3px 7px',borderRadius:6,
+                      border:'.5px solid var(--bdr2)',background:'var(--bg)',color:'var(--txt)'}},
+                    EDU_LEVELS.map(l=>E('option',{key:l.id,value:l.id},l.label))),
+                  d.children.length>1&&E('button',{
+                    onClick:()=>setD(p=>({...p,children:p.children.filter(c=>c.id!==child.id)})),
+                    style:{border:'none',background:'transparent',color:'var(--txt3)',fontSize:16,padding:'0 2px'}
+                  },'×')
+                )
+              ),
+              /* 年間費用：横一列テーブル */
+              E('div',{style:{overflowX:'auto'}},
+                E('table',{style:{width:'100%',borderCollapse:'collapse'}},
+                  E('thead',null,
+                    E('tr',null,
+                      stages.map(s=>{
+                        const ageA=s.id==='nursery'?(child.nurseryStart??0)
+                          :s.id==='kindergarten'?(child.kindergartenStart??3)
+                          :s.id==='graduate'?(child.graduateStart??22):s.ages[0];
+                        const ageB=s.id==='nursery'?(child.nurseryEnd??3)
+                          :s.id==='kindergarten'?(child.kindergartenEnd??6)
+                          :s.id==='graduate'?(child.graduateEnd??24):s.ages[1];
+                        const isEditable=s.id==='nursery'||s.id==='kindergarten'||s.id==='graduate';
+                        const minAge=s.id==='nursery'?0:s.id==='kindergarten'?0:22;
+                        const maxAge=s.id==='nursery'?6:s.id==='kindergarten'?6:27;
+                        const startKey=s.id==='nursery'?'nurseryStart':s.id==='kindergarten'?'kindergartenStart':'graduateStart';
+                        const endKey=s.id==='nursery'?'nurseryEnd':s.id==='kindergarten'?'kindergartenEnd':'graduateEnd';
+                        const defStart=s.id==='nursery'?0:s.id==='kindergarten'?3:22;
+                        const defEnd=s.id==='nursery'?3:s.id==='kindergarten'?6:24;
+                        return E('th',{key:s.id,style:{
+                          fontSize:10,fontWeight:600,color:'var(--txt3)',
+                          padding:'0 6px 8px',textAlign:'center',
+                          borderBottom:'.5px solid var(--bdr2)',whiteSpace:'nowrap'
+                        }},
+                          E('div',null,s.label),
+                          isEditable
+                            ? E('div',{style:{display:'flex',alignItems:'center',gap:2,justifyContent:'center',marginTop:3}},
+                                E(InlineNumNullable,{value:ageA,min:minAge,max:maxAge,placeholder:String(defStart),
+                                  onChange:v=>updC(child.id,startKey,v??defStart),
+                                  style:{width:26,height:22,padding:'0 3px',borderRadius:5,
+                                    border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                                    fontSize:10,color:'var(--txt)',textAlign:'center'}}),
+                                E('span',{style:{fontSize:9,color:'var(--txt3)'}},'〜'),
+                                E(InlineNumNullable,{value:ageB,min:minAge,max:maxAge,placeholder:String(defEnd),
+                                  onChange:v=>updC(child.id,endKey,v??defEnd),
+                                  style:{width:26,height:22,padding:'0 3px',borderRadius:5,
+                                    border:'.5px solid var(--bdr2)',background:'var(--bg)',
+                                    fontSize:10,color:'var(--txt)',textAlign:'center'}}),
+                                E('span',{style:{fontSize:9,color:'var(--txt3)'}},'歳')
+                              )
+                            : E('div',{style:{fontSize:9,fontWeight:400,color:'var(--txt3)',marginTop:2}},
+                                `${ageA}〜${ageB}歳`)
+                        );
+                      })
+                    )
+                  ),
+                  E('tbody',null,
+                    E('tr',null,
+                      stages.map(s=>
+                        E('td',{key:s.id,style:{padding:'8px 6px',textAlign:'center',verticalAlign:'middle'}},
+                          E('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:2}},
+                            E(InlineNum,{value:child.costs[s.id],min:0,step:10,
+                              onChange:v=>updCC(child.id,s.id,v),
+                              style:{width:56,height:32,padding:'0 4px',borderRadius:7,
+                                border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+                                fontSize:14,fontWeight:500,color:'var(--txt)',textAlign:'right'}}),
+                            E('span',{style:{fontSize:10,color:'var(--txt3)'}}, '万')
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              /* 習い事 */
+              E('div',{style:{marginTop:12,paddingTop:12,borderTop:'.5px solid var(--bdr)'}},
+                E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+                  E('div',{style:{fontSize:10,color:'var(--txt3)',fontWeight:600,
+                    textTransform:'uppercase',letterSpacing:'.06em'}},'習い事（月額）'),
+                  E('button',{
+                    onClick:()=>updC(child.id,'activities',[...(child.activities||[]),
+                      {id:Date.now(),name:'習い事',monthly:1,fromAge:3,toAge:12}]),
+                    style:{fontSize:11,padding:'3px 10px',borderRadius:6,
+                      border:'.5px solid var(--bdr2)',background:'transparent',
+                      color:'var(--txt)',cursor:'pointer'}
+                  },'+ 追加')
+                ),
+                (child.activities||[]).length===0
+                  ? E('div',{style:{fontSize:11,color:'var(--txt3)',padding:'6px 0'}},'登録されていません')
+                  : E('table',{style:{width:'100%',borderCollapse:'collapse'}},
+                      E('thead',null,E('tr',null,
+                        E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'left',borderBottom:'.5px solid var(--bdr2)'}},'名称'),
+                        E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'開始'),
+                        E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'center',borderBottom:'.5px solid var(--bdr2)'}},'終了'),
+                        E('th',{style:{fontSize:10,fontWeight:600,color:'var(--txt3)',padding:'0 6px 6px',textAlign:'right',borderBottom:'.5px solid var(--bdr2)'}},'月額'),
+                        E('th',{style:{borderBottom:'.5px solid var(--bdr2)'}})
+                      )),
+                      E('tbody',null,(child.activities||[]).map((act,i)=>
+                        E('tr',{key:act.id,style:{background:i%2===0?'transparent':'var(--bg2)'}},
+                          E('td',{style:{padding:'5px 6px'}},
+                            E(InlineText,{value:act.name,
+                              onChange:v=>updC(child.id,'activities',(child.activities||[]).map(x=>x.id===act.id?{...x,name:v}:x)),
+                              style:{width:'100%',height:28,padding:'0 7px',borderRadius:6,
+                                border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)'}})
+                          ),
+                          E('td',{style:{padding:'5px 4px'}},
+                            E('div',{style:{display:'flex',alignItems:'center',gap:2}},
+                              E(InlineNumNullable,{value:act.fromAge??0,min:0,max:30,placeholder:'0',
+                                onChange:v=>updC(child.id,'activities',(child.activities||[]).map(x=>x.id===act.id?{...x,fromAge:v??0}:x)),
+                                style:{width:32,height:28,padding:'0 4px',borderRadius:6,
+                                  border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)',textAlign:'center'}}),
+                              E('span',{style:{fontSize:10,color:'var(--txt3)'}},'歳')
+                            )
+                          ),
+                          E('td',{style:{padding:'5px 4px'}},
+                            E('div',{style:{display:'flex',alignItems:'center',gap:2}},
+                              E(InlineNumNullable,{value:act.toAge??18,min:0,max:30,placeholder:'18',
+                                onChange:v=>updC(child.id,'activities',(child.activities||[]).map(x=>x.id===act.id?{...x,toAge:v??18}:x)),
+                                style:{width:32,height:28,padding:'0 4px',borderRadius:6,
+                                  border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)',textAlign:'center'}}),
+                              E('span',{style:{fontSize:10,color:'var(--txt3)'}},'歳')
+                            )
+                          ),
+                          E('td',{style:{padding:'5px 4px'}},
+                            E('div',{style:{display:'flex',alignItems:'center',gap:3,justifyContent:'flex-end'}},
+                              E(InlineNum,{value:act.monthly||0,min:0,step:0.5,
+                                onChange:v=>updC(child.id,'activities',(child.activities||[]).map(x=>x.id===act.id?{...x,monthly:v}:x)),
+                                style:{width:52,height:28,padding:'0 6px',borderRadius:6,
+                                  border:'.5px solid var(--bdr2)',background:'var(--bg)',fontSize:12,color:'var(--txt)',textAlign:'right'}}),
+                              E('span',{style:{fontSize:10,color:'var(--txt3)'}},'万円')
+                            )
+                          ),
+                          E('td',{style:{padding:'5px 4px',textAlign:'center'}},
+                            E('button',{
+                              onClick:()=>updC(child.id,'activities',(child.activities||[]).filter(x=>x.id!==act.id)),
+                              style:{border:'none',background:'transparent',color:'var(--ng-txt)',fontSize:14,cursor:'pointer',padding:'0 3px'}
+                            },'×')
+                          )
+                        )
+                      ))
+                    )
+              ),
+              /* 入学費用 */
+              (child.maxLevel==='university'||child.maxLevel==='graduate')&&E('div',{
+                style:{marginTop:12,paddingTop:12,borderTop:'.5px solid var(--bdr)'}},
+                E('div',{style:{fontSize:10,color:'var(--txt3)',marginBottom:8,fontWeight:600,
+                  textTransform:'uppercase',letterSpacing:'.06em'}},'入学費用（一時費用）'),
+                E('div',{style:{display:'flex',gap:12,flexWrap:'wrap'}},
+                  E('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                    E('span',{style:{fontSize:11,color:'var(--txt2)',whiteSpace:'nowrap'}},'大学入学（18歳）'),
+                    E(InlineNum,{value:child.universityEntrance||0,min:0,step:10,
+                      onChange:v=>updC(child.id,'universityEntrance',v),
+                      style:{width:64,height:30,padding:'0 8px',borderRadius:7,
+                        border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+                        fontSize:13,fontWeight:500,color:'var(--txt)',textAlign:'right'}}),
+                    E('span',{style:{fontSize:10,color:'var(--txt3)'}},'万円')
+                  ),
+                  child.maxLevel==='graduate'&&E('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                    E('span',{style:{fontSize:11,color:'var(--txt2)',whiteSpace:'nowrap'}},
+                      `大学院入学（${child.graduateStart??22}歳）`),
+                    E(InlineNum,{value:child.graduateEntrance||0,min:0,step:10,
+                      onChange:v=>updC(child.id,'graduateEntrance',v),
+                      style:{width:64,height:30,padding:'0 8px',borderRadius:7,
+                        border:'.5px solid var(--bdr2)',background:'var(--bg2)',
+                        fontSize:13,fontWeight:500,color:'var(--txt)',textAlign:'right'}}),
+                    E('span',{style:{fontSize:10,color:'var(--txt3)'}},'万円')
+                  )
+                )
+              )
+            );
+          })
+        )
+      ),
+
+      /* ── 実績入力 ── */
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
