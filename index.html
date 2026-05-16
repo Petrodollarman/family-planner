@@ -136,7 +136,7 @@ function makeChild(id){
     universityEntrance:100,graduateEntrance:50,activities:[]};
 }
 function makeInvest(id,owner='my'){
-  return{id,name:"金融資産（株・投信等）",balance:300,returnRate:5,monthly:3,owner,source:'income',investType:'monthly',lumpsums:[{id:1,amount:0,age:null}],stopType:'period'};
+  return{id,name:"金融資産（株・投信等）",balance:300,returnRate:5,monthly:3,owner,source:'income',investType:'monthly',lumpsums:[{id:1,amount:0,age:null}],stopType:'period',taxType:'nisa'};
 }
 const DEF={
   myAge:35,retireAge:65,mySavings:300,spouseSavings:0,
@@ -225,7 +225,7 @@ function project(d){
   const loanEnd=d.purchaseYear+d.loanYears;
   const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0); // 表示用合計
   let cash=(d.mySavings||0)+(d.spouseSavings||0);
-  let invests=d.invest.map(i=>({...i,cur:i.balance,contributed:0}));
+  let invests=d.invest.map(i=>({...i,cur:i.balance,contributed:0,costBasis:i.balance}));
   const rows=[];
   for(let yr=CY;yr<=endY;yr++){
     const age=d.myAge+(yr-CY);
@@ -266,24 +266,49 @@ function project(d){
       const isLumpsum=(i.investType||'monthly')==='lumpsum';
       if(isLumpsum){
         const lumpAdd=(i.lumpsums||[]).filter(l=>l.age!=null&&age===l.age).reduce((a,l)=>a+(l.amount||0),0);
-        return{...i,cur:i.cur*(1+i.returnRate/100)+lumpAdd,contributed:i.contributed+lumpAdd};
+        return{...i,cur:i.cur*(1+i.returnRate/100)+lumpAdd,contributed:i.contributed+lumpAdd,costBasis:i.costBasis+lumpAdd};
       }
       const periodActive=(!i.startAge||age>=i.startAge)&&(!i.endAge||age<=i.endAge)&&!retired;
       const targetReached=i.targetBalance&&i.contributed>=i.targetBalance;
       const monthlyActive=periodActive&&!targetReached;
       const add=monthlyActive&&invM>0?i.monthly*12:0;
       invM_actual+=monthlyActive&&invM>0?i.monthly:0;
-      return{...i,cur:i.cur*(1+i.returnRate/100)+add,contributed:i.contributed+add};
+      return{...i,cur:i.cur*(1+i.returnRate/100)+add,contributed:i.contributed+add,costBasis:i.costBasis+add};
     });
     const totalInv=Math.round(invests.reduce((s,i)=>s+i.cur,0));
     const investSnapshot=invests.map(i=>({id:i.id,name:i.name,cur:Math.round(i.cur)}));
-    const cashR=Math.round(cash);
+    let cashR=Math.round(cash);
+    let drawdown=0;
+    let taxOnDrawdown=0;
+    // 現金がマイナスの場合、金融資産から取り崩す
+    if(cashR<0&&totalInv>0){
+      const needed=Math.min(-cashR,totalInv);
+      // 税後手取り合計を求めるための有効額（NISA=額面、課税=税引後）
+      const effectiveTotal=invests.reduce((s,i)=>{
+        const gainRatio=i.cur>0?Math.max(0,(i.cur-i.costBasis)/i.cur):0;
+        return s+((i.taxType||'nisa')==='nisa'?i.cur:i.cur*(1-gainRatio*0.20315));
+      },0);
+      const r=effectiveTotal>0?Math.min(needed/effectiveTotal,1):0;
+      invests=invests.map(i=>{
+        const soldAmt=i.cur*r;
+        const gainRatio=i.cur>0?Math.max(0,(i.cur-i.costBasis)/i.cur):0;
+        const tax=(i.taxType||'nisa')==='nisa'?0:soldAmt*gainRatio*0.20315;
+        taxOnDrawdown+=tax;
+        return{...i,cur:i.cur-soldAmt,costBasis:Math.max(0,i.costBasis*(1-r))};
+      });
+      const grossSold=totalInv*r;
+      drawdown=Math.round(grossSold-taxOnDrawdown); // 手取り額
+      cashR=0;
+      cash=0;
+    }
+    taxOnDrawdown=Math.round(taxOnDrawdown);
+    const totalInvAfter=Math.round(invests.reduce((s,i)=>s+i.cur,0));
     const incomeR=Math.round(income+oneTimeIncome);
     const expenseR=Math.round(monthExp*12+loan+housingExtra+edu+invM+oneTimeExpense);
     const netR=incomeR-expenseR;
-    rows.push({yr,age,label:`${age}歳`,total:cashR+totalInv,cash:cashR,invest:totalInv,
-      investSnapshot,
-      cashMinus:cashR<0,
+    rows.push({yr,age,label:`${age}歳`,total:cashR+totalInvAfter,cash:cashR,invest:totalInvAfter,
+      investSnapshot:invests.map(i=>({id:i.id,name:i.name,cur:Math.round(i.cur)})),
+      cashMinus:drawdown>0,drawdown:Math.round(drawdown),taxOnDrawdown,
       loan:Math.round(loan),
       income:incomeR,expense:expenseR,net:netR,edu:Math.round(edu)});
   }
@@ -613,19 +638,44 @@ function DiagReport({diag,open,setOpen}){
 function NF({label,value,onChange,unit,min=0,max,step=1,note,readOnly}){
   const[local,setLocal]=useState(String(value));
   useEffect(()=>setLocal(String(value)),[value]);
-  const commit=v=>{const n=parseFloat(v);if(!isNaN(n))onChange(n);else setLocal(String(value));};
-  return React.createElement('div',{className:'nf'},
-    React.createElement('div',{style:{display:'flex',justifyContent:'space-between'}},
-      React.createElement('label',null,label),
-      note&&React.createElement('span',{style:{fontSize:10,color:'var(--txt3)'}},note)
+  const clamp=n=>max!=null?Math.min(max,Math.max(min,n)):Math.max(min,n);
+  const commit=v=>{
+    const n=parseFloat(v);
+    if(!isNaN(n)){const c=clamp(n);onChange(c);setLocal(String(c));}
+    else setLocal(String(value));
+  };
+  const adj=delta=>{const n=clamp(parseFloat(local||value)+delta);onChange(n);setLocal(String(n));};
+  const E=React.createElement;
+  return E('div',{className:'nf'},
+    E('div',{style:{display:'flex',justifyContent:'space-between'}},
+      E('label',null,label),
+      note&&E('span',{style:{fontSize:10,color:'var(--txt3)'}},note)
     ),
-    React.createElement('div',{className:'row'},
-      React.createElement('input',{type:'number',value:local,min,max,step,readOnly,
+    E('div',{className:'row'},
+      !readOnly&&E('button',{
+        onClick:()=>adj(-step),tabIndex:-1,
+        style:{height:34,width:28,borderRadius:8,border:'.5px solid var(--bdr2)',
+          background:'var(--bg2)',color:'var(--txt2)',fontSize:16,flexShrink:0,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:0}
+      },'−'),
+      E('input',{type:'number',value:local,min,max,step,readOnly,
         className:readOnly?'ro':undefined,
+        style:{textAlign:'center'},
         onChange:e=>setLocal(e.target.value),
+        onFocus:e=>e.target.select(),
         onBlur:e=>commit(e.target.value),
-        onKeyDown:e=>e.key==='Enter'&&commit(e.target.value)}),
-      unit&&React.createElement('span',{className:'un'},unit)
+        onKeyDown:e=>{
+          if(e.key==='Enter')commit(e.target.value);
+          if(e.key==='ArrowUp'){e.preventDefault();adj(step);}
+          if(e.key==='ArrowDown'){e.preventDefault();adj(-step);}
+        }}),
+      !readOnly&&E('button',{
+        onClick:()=>adj(step),tabIndex:-1,
+        style:{height:34,width:28,borderRadius:8,border:'.5px solid var(--bdr2)',
+          background:'var(--bg2)',color:'var(--txt2)',fontSize:16,flexShrink:0,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:0}
+      },'＋'),
+      unit&&E('span',{className:'un'},unit)
     )
   );
 }
@@ -633,11 +683,21 @@ function NF({label,value,onChange,unit,min=0,max,step=1,note,readOnly}){
 function InlineNum({value,onChange,min=0,max,step=1,style}){
   const[local,setLocal]=useState(String(value));
   useEffect(()=>setLocal(String(value)),[value]);
-  const commit=v=>{const n=parseFloat(v);if(!isNaN(n))onChange(n);else setLocal(String(value));};
+  const clamp=n=>max!=null?Math.min(max,Math.max(min,n)):Math.max(min,n);
+  const commit=v=>{
+    const n=parseFloat(v);
+    if(!isNaN(n)){const c=clamp(n);onChange(c);setLocal(String(c));}
+    else setLocal(String(value));
+  };
   return React.createElement('input',{type:'number',value:local,min,max,step,
     onChange:e=>setLocal(e.target.value),
+    onFocus:e=>e.target.select(),
     onBlur:e=>commit(e.target.value),
-    onKeyDown:e=>e.key==='Enter'&&commit(e.target.value),
+    onKeyDown:e=>{
+      if(e.key==='Enter')commit(e.target.value);
+      if(e.key==='ArrowUp'){e.preventDefault();const n=clamp(parseFloat(local||value)+step);onChange(n);setLocal(String(n));}
+      if(e.key==='ArrowDown'){e.preventDefault();const n=clamp(parseFloat(local||value)-step);onChange(n);setLocal(String(n));}
+    },
     style});
 }
 
@@ -647,6 +707,7 @@ function InlineText({value,onChange,style}){
   useEffect(()=>setLocal(value),[value]);
   return React.createElement('input',{type:'text',value:local,
     onChange:e=>setLocal(e.target.value),
+    onFocus:e=>e.target.select(),
     onBlur:e=>onChange(e.target.value),
     onKeyDown:e=>e.key==='Enter'&&onChange(e.target.value),
     style});
@@ -693,7 +754,7 @@ function InvestCard({inv,d,isMobile,updI,setD}){
   const canDelete=d.invest.length>1;
   const pred10=Math.round(inv.balance*Math.pow(1+inv.returnRate/100,10)+inv.monthly*12*((Math.pow(1+inv.returnRate/100,10)-1)/(inv.returnRate/100||0.0001)));
   return E('div',{style:{background:'var(--bg2)',border:'.5px solid var(--bdr)',borderRadius:10,padding:'14px 16px',marginBottom:10}},
-    E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+    E('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}},
       E(InlineText,{value:inv.name,onChange:v=>updI(inv.id,'name',v),
         style:{fontWeight:600,fontSize:13,flex:1,height:32,padding:'0 8px',borderRadius:7,
           border:'.5px solid var(--bdr2)',background:'var(--bg2)',color:'var(--txt)'}}),
@@ -703,6 +764,18 @@ function InvestCard({inv,d,isMobile,updI,setD}){
           onClick:()=>setD(p=>({...p,invest:p.invest.filter(i=>i.id!==inv.id)})),
           style:{border:'none',background:'transparent',color:'var(--txt3)',fontSize:16,padding:'0 2px'}
         },'×')
+      )
+    ),
+    /* 口座種別（税区分） */
+    E('div',{style:{display:'flex',gap:6,marginBottom:12}},
+      [{id:'nisa',label:'🟢 NISA（非課税）'},{id:'taxable',label:'💹 課税口座（20.315%）'}].map(t=>
+        E('button',{key:t.id,onClick:()=>updI(inv.id,'taxType',t.id),
+          style:{flex:1,height:30,borderRadius:7,fontSize:11,fontWeight:500,cursor:'pointer',border:'none',
+            background:(inv.taxType||'nisa')===t.id
+              ?(t.id==='nisa'?'#1D9E75':'#EF9F27')
+              :'var(--bg2)',
+            color:(inv.taxType||'nisa')===t.id?'#fff':'var(--txt2)'}
+        },t.label)
       )
     ),
     E('div',{style:{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:8,marginBottom:8}},
@@ -865,7 +938,7 @@ function InvestCard({inv,d,isMobile,updI,setD}){
 /* ── メインApp ── */
 function App(){
   const[d,setD]=useState(()=>{
-    try{const s=localStorage.getItem(STORE);if(s){const p=JSON.parse(s);return{...DEF,...p,actuals:p.actuals||{},invest:p.invest||DEF.invest,incomeRanges:p.incomeRanges||DEF.incomeRanges,spouseIncomeRanges:p.spouseIncomeRanges||DEF.spouseIncomeRanges,expenseRanges:p.expenseRanges||DEF.expenseRanges,housingExtras:p.housingExtras||DEF.housingExtras,mySavings:p.mySavings??p.savings??DEF.mySavings,spouseSavings:p.spouseSavings??DEF.spouseSavings,myPensionAge:p.myPensionAge||DEF.myPensionAge,myPensionMonthly:p.myPensionMonthly||DEF.myPensionMonthly,spousePensionAge:p.spousePensionAge||DEF.spousePensionAge,spousePensionMonthly:p.spousePensionMonthly||DEF.spousePensionMonthly};}}catch{}
+    try{const s=localStorage.getItem(STORE);if(s){const p=JSON.parse(s);return{...DEF,...p,actuals:p.actuals||{},invest:(p.invest||DEF.invest).map(i=>({taxType:'nisa',...i})),incomeRanges:p.incomeRanges||DEF.incomeRanges,spouseIncomeRanges:p.spouseIncomeRanges||DEF.spouseIncomeRanges,expenseRanges:p.expenseRanges||DEF.expenseRanges,housingExtras:p.housingExtras||DEF.housingExtras,mySavings:p.mySavings??p.savings??DEF.mySavings,spouseSavings:p.spouseSavings??DEF.spouseSavings,myPensionAge:p.myPensionAge||DEF.myPensionAge,myPensionMonthly:p.myPensionMonthly||DEF.myPensionMonthly,spousePensionAge:p.spousePensionAge||DEF.spousePensionAge,spousePensionMonthly:p.spousePensionMonthly||DEF.spousePensionMonthly};}}catch{}
     return DEF;
   });
   const[tab,setTab]=useState("dashboard");
@@ -921,6 +994,8 @@ function App(){
   const totalInvBal=d.invest.reduce((s,i)=>s+i.balance,0);
   const cashMinusRows=proj.filter(r=>r.cashMinus);
   const firstCashMinus=cashMinusRows[0];
+  const totalDrawdown=proj.reduce((s,r)=>s+(r.drawdown||0),0);
+  const totalTaxOnDrawdown=proj.reduce((s,r)=>s+(r.taxOnDrawdown||0),0);
 
   const lights={
     housing:diag.housing.status,
@@ -1129,18 +1204,20 @@ function App(){
             sub:mNet>=0?'黒字':'赤字'})
         ),
 
-        /* 現金マイナス警告 */
+        /* 現金不足→金融資産取り崩し警告 */
         firstCashMinus&&E('div',{style:{
-          background:'var(--ng-bg)',border:'.5px solid var(--ng-bdr)',
+          background:'var(--wn-bg)',border:'.5px solid var(--wn-bdr)',
           borderRadius:10,padding:'12px 16px',marginBottom:14,
           display:'flex',alignItems:'flex-start',gap:10}},
           E('span',{style:{fontSize:18,flexShrink:0}},'⚠️'),
           E('div',null,
-            E('div',{style:{fontSize:13,fontWeight:700,color:'var(--ng-txt)',marginBottom:3}}),
-            E('div',{style:{fontSize:13,fontWeight:700,color:'var(--ng-txt)',marginBottom:3}},
-              `${firstCashMinus.age}歳時点で現金・預貯金がマイナスになります`),
+            E('div',{style:{fontSize:13,fontWeight:700,color:'var(--wn-txt)',marginBottom:3}},
+              `${firstCashMinus.age}歳から現金不足のため金融資産を取り崩します`),
             E('div',{style:{fontSize:12,color:'var(--txt2)',lineHeight:1.6}},
-              `${firstCashMinus.yr}年（${firstCashMinus.age}歳）時点で現金残高が約${Math.abs(firstCashMinus.cash).toLocaleString()}万円不足します。積立額の見直し・入金元の変更・生活費の削減をご検討ください。`)
+              `${firstCashMinus.yr}年（${firstCashMinus.age}歳）に現金が不足し、金融資産から${firstCashMinus.drawdown.toLocaleString()}万円を取り崩しました。`
+              +`シミュレーション全期間の取り崩し手取り総額：${totalDrawdown.toLocaleString()}万円`
+              +(totalTaxOnDrawdown>0?`（うち課税口座の税負担：${totalTaxOnDrawdown.toLocaleString()}万円）`:'（NISA：全額非課税）')
+              +`。生活費・積立額の見直しをご検討ください。`)
           )
         ),
 
