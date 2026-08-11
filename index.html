@@ -615,7 +615,7 @@ function project(d){
       if((i.investType||'monthly')!=='lumpsum')return s;
       return s+(i.lumpsums||[]).filter(l=>l.age!=null&&age===l.age).reduce((a,l)=>a+(l.amount||0),0);
     },0);
-    const cashBeforeInv=cash+(income-monthExp*12-loan-housingExtra-edu)+oneTimeIncome-oneTimeExpense-lumpsumTotal;
+    const cashBeforeInv=cash+(income-monthExp*12-loan-housingExtra-rent-edu)+oneTimeIncome-oneTimeExpense-lumpsumTotal;
     // 現金が積立額に足りない場合は積立中止
     const invM=cashBeforeInv>=invM_total*12?invM_total:0;
     cash=cashBeforeInv-invM*12;
@@ -693,7 +693,7 @@ function diagnose(d,proj,lp){
   const loanAmt=Math.max(0,d.propertyPrice-d.downPayment);
   const totalCost=Math.round(lp*d.loanYears*12);
   const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0);
-  const mNet=householdIncome-getExpense(d,d.myAge)-lp-totalInvM;
+  const mNet=householdIncome-getExpense(d,d.myAge)-lp-housingExtrasM-(CY<d.purchaseYear?(d.rentMonthly||0):0)-totalInvM;
   const last=proj[proj.length-1];
   const atRetire=proj.find(r=>r.age===d.retireAge);
   const zeroRow=proj.find(r=>r.total<0);
@@ -2460,7 +2460,7 @@ function App(){
         const lp2=loanCalc(data.propertyPrice,data.downPayment,data.loanYears,data.interestRate);
         const last2=proj2[proj2.length-1];
         const atRetire2=proj2.find(r=>r.age>=data.retireAge)||proj2[0];
-        const mNet2=getIncome(data,data.myAge)+getSpouseIncome(data,data.spouseAge||0)-(data.expenseRanges[0]?.amount||0)-loanCalc(data.propertyPrice,data.downPayment,data.loanYears,data.interestRate);
+        const mNet2=getIncome(data,data.myAge)+getSpouseIncome(data,data.spouseAge||0)-(data.expenseRanges[0]?.amount||0)-loanCalc(data.propertyPrice,data.downPayment,data.loanYears,data.interestRate)-(data.housingExtras||[]).reduce((s,e)=>s+e.monthly,0)-(CY<data.purchaseYear?(data.rentMonthly||0):0)-(data.invest||[]).reduce((s,i)=>s+(i.monthly||0),0);
         return{plan,data,proj:proj2,last:last2,atRetire:atRetire2,mNet:mNet2};
       }catch{return{plan,data:DEF,proj:[],last:null,atRetire:null,mNet:0};}
     });
@@ -2540,7 +2540,7 @@ function App(){
   const housingExtrasM=(d.housingExtras||[]).reduce((s,e)=>s+e.monthly,0);
   const loanRatio=householdIncome>0?(lp+housingExtrasM)/householdIncome:0;
   const totalInvM=d.invest.reduce((s,i)=>s+i.monthly,0);
-  const mNet=householdIncome-getExpense(d,d.myAge)-lp-totalInvM;
+  const mNet=householdIncome-getExpense(d,d.myAge)-lp-housingExtrasM-(CY<d.purchaseYear?(d.rentMonthly||0):0)-totalInvM;
   const last=proj[proj.length-1];
   const atRetire=proj.find(r=>r.age===d.retireAge);
   const totalInvBal=d.invest.reduce((s,i)=>s+i.balance,0);
