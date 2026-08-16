@@ -2788,41 +2788,50 @@ function App(){
               },'比較')
             )
           ),
-          /* ⋯ メニューボタン */
-          E('div',{style:{position:'relative',flexShrink:0}},
-            E('button',{
-              onClick:()=>setMenuOpen(v=>!v),
-              style:{width:36,height:36,borderRadius:10,border:'1px solid var(--bdr2)',
-                background:'var(--bg2)',color:'var(--txt)',fontSize:18,cursor:'pointer',
-                display:'flex',alignItems:'center',justifyContent:'center'}
-            },'⋯'),
-            menuOpen&&E('div',{
-              style:{position:'absolute',right:0,top:42,background:'var(--bg)',
-                border:'1px solid var(--bdr)',borderRadius:12,padding:'6px',
-                boxShadow:'0 4px 20px rgba(0,0,0,.15)',zIndex:50,minWidth:160}
+          /* 設定・データ管理（スマホ向け） */
+          E('button',{
+            onClick:()=>setMenuOpen(true),
+            style:{height:36,padding:'0 10px',borderRadius:10,border:'1px solid var(--bdr2)',
+              background:'var(--bg2)',color:'var(--txt)',fontSize:12,fontWeight:600,cursor:'pointer',
+              display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}
+          },'⚙️ 設定'),
+          menuOpen&&E('div',{
+            style:{position:'fixed',inset:0,zIndex:100,background:'rgba(0,0,0,.38)',
+              display:'flex',alignItems:'flex-end'},
+            onClick:()=>setMenuOpen(false)
+          },
+            E('div',{
+              onClick:e=>e.stopPropagation(),
+              style:{width:'100%',background:'var(--bg)',borderRadius:'18px 18px 0 0',
+                padding:'18px 18px calc(18px + env(safe-area-inset-bottom))',
+                boxShadow:'0 -8px 28px rgba(0,0,0,.16)'}
             },
+              E('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
+                E('div',{style:{fontSize:16,fontWeight:700,color:'var(--txt)'}},'⚙️ 設定・データ管理'),
+                E('button',{onClick:()=>setMenuOpen(false),'aria-label':'閉じる',
+                  style:{width:32,height:32,border:'none',borderRadius:16,background:'var(--bg2)',
+                    color:'var(--txt2)',fontSize:20,cursor:'pointer'}},'×')
+              ),
+              E('div',{style:{fontSize:12,color:'var(--txt2)',lineHeight:1.6,marginBottom:14}},
+                '入力内容はこの端末に自動保存されます。機種変更や復元時は、保存したバックアップを読み込んでください。'
+              ),
+              E('button',{
+                onClick:()=>{importData();setMenuOpen(false);},
+                style:{display:'flex',alignItems:'center',gap:10,width:'100%',padding:'13px 14px',
+                  borderRadius:11,border:'1px solid #378ADD',background:'rgba(55,138,221,.08)',
+                  color:'#185fa5',fontSize:14,fontWeight:700,cursor:'pointer',textAlign:'left'}
+              },E('span',{style:{fontSize:18}},'📂'),'バックアップを読み込む'),
+              E('div',{style:{fontSize:11,fontWeight:700,color:'var(--txt3)',margin:'18px 2px 7px'}},'計算の根拠'),
               [
-                {icon:'📂',label:'バックアップを読み込む',action:()=>{importData();setMenuOpen(false);}},
-                {icon:'💾',label:'このプランをバックアップ',action:()=>{exportData();setMenuOpen(false);}},
-                {icon:'🏠',label:'デフォルトとして保存',action:()=>{exportAsDefault();setMenuOpen(false);}},
-                null,
                 {icon:'📚',label:'教育費の根拠',action:()=>{setRefModal('edu');setMenuOpen(false);}},
                 {icon:'🏠',label:'生活費の根拠',action:()=>{setRefModal('expense');setMenuOpen(false);}},
                 {icon:'📋',label:'年金計算の根拠',action:()=>{setRefModal('pension');setMenuOpen(false);}},
-              ].map((item,i)=>item===null
-                ? E('div',{key:'sep'+i,style:{height:1,background:'var(--bdr)',margin:'4px 2px'}})
-                : E('button',{key:item.label,onClick:item.action,
-                    style:{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'9px 12px',
-                      borderRadius:8,border:'none',background:'transparent',
-                      color:'var(--txt)',fontSize:13,cursor:'pointer',textAlign:'left'}
-                  },E('span',null,item.icon),item.label)
-              )
-            ),
-            /* メニュー外クリックで閉じる */
-            menuOpen&&E('div',{
-              style:{position:'fixed',inset:0,zIndex:49},
-              onClick:()=>setMenuOpen(false)
-            })
+              ].map(item=>E('button',{key:item.label,onClick:item.action,
+                style:{display:'flex',alignItems:'center',gap:9,width:'100%',padding:'11px 8px',
+                  border:'none',borderBottom:'.5px solid var(--bdr)',background:'transparent',
+                  color:'var(--txt)',fontSize:13,cursor:'pointer',textAlign:'left'}
+              },E('span',null,item.icon),item.label))
+            )
           )
         ),
         /* 自動保存とバックアップ（スマホで迷わない導線） */
