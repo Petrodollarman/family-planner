@@ -2693,11 +2693,11 @@ function App(){
       E('div',{style:{background:'var(--bg)',borderRadius:14,padding:'24px 24px',
         width:'100%',maxWidth:380,boxShadow:'0 8px 32px rgba(0,0,0,.2)'}},
         E('div',{style:{fontSize:14,fontWeight:700,color:'var(--txt)',marginBottom:6}},
-          saveMode==='default'?'🏠 デフォルトとして保存':'💾 データを保存'),
+          saveMode==='default'?'🏠 デフォルトとして保存':'💾 このプランをバックアップ'),
         E('div',{style:{fontSize:12,color:'var(--txt3)',marginBottom:16,lineHeight:1.6}},
           saveMode==='default'
             ?'現在の入力内容をHTMLに埋め込んで保存します。次回このファイルを開いた時から自動的に表示されます。'
-            :'設定データをJSONファイルで保存します。「読込」で同じデータを復元できます。'
+            :'このプランの設定データをJSONファイルで保存します。機種変更やブラウザのデータ削除に備え、「バックアップを読み込む」から復元できます。'
         ),
         E('div',{style:{fontSize:11,color:'var(--txt2)',marginBottom:4}},'ファイル名'),
         E('input',{
@@ -2802,8 +2802,8 @@ function App(){
                 boxShadow:'0 4px 20px rgba(0,0,0,.15)',zIndex:50,minWidth:160}
             },
               [
-                {icon:'📂',label:'JSONを読み込む',action:()=>{importData();setMenuOpen(false);}},
-                {icon:'💾',label:'JSONで保存',action:()=>{exportData();setMenuOpen(false);}},
+                {icon:'📂',label:'バックアップを読み込む',action:()=>{importData();setMenuOpen(false);}},
+                {icon:'💾',label:'このプランをバックアップ',action:()=>{exportData();setMenuOpen(false);}},
                 {icon:'🏠',label:'デフォルトとして保存',action:()=>{exportAsDefault();setMenuOpen(false);}},
                 null,
                 {icon:'📚',label:'教育費の根拠',action:()=>{setRefModal('edu');setMenuOpen(false);}},
@@ -2824,6 +2824,16 @@ function App(){
               onClick:()=>setMenuOpen(false)
             })
           )
+        ),
+        /* 自動保存とバックアップ（スマホで迷わない導線） */
+        E('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
+          padding:'0 2px 7px',fontSize:11,color:'var(--txt3)'}},
+          E('span',null,'✓ 入力内容はこの端末に自動保存されています'),
+          E('button',{
+            onClick:exportData,
+            style:{flexShrink:0,padding:'6px 10px',borderRadius:7,border:'1px solid #378ADD',
+              background:'rgba(55,138,221,.08)',color:'#185fa5',fontSize:12,fontWeight:600,cursor:'pointer'}
+          },'💾 バックアップ')
         ),
         /* タブ（アイコン＋バッジ付き） */
         E('div',{className:'tab-scroll'},
