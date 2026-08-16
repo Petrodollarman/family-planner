@@ -376,6 +376,14 @@ function loanCalc(price,down,years,rate){
   if(r===0)return P/n/10000;
   return(P*r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1)/10000;
 }
+/* 月々の返済上限から借入元本を逆算（単位：万円） */
+function maxLoanPrincipal(monthlyPayment,years,rate){
+  const n=years*12;
+  if(!monthlyPayment||!n)return 0;
+  const r=rate/100/12;
+  if(r===0)return monthlyPayment*n;
+  return monthlyPayment*(1-Math.pow(1+r,-n))/r;
+}
 function childEdu(child,year){
   const age=year-child.birthYear;let t=0;
   for(const s of EDU_STAGES){
@@ -701,9 +709,11 @@ function diagnose(d,proj,lp){
   /* --- 住宅診断 --- */
   let housing;
   const rPct=Math.round(loanRatio*100);
-  const targetLoan=Math.floor(householdIncome*0.25*d.loanYears*12/10000)*10000;
-  const neededDown=Math.max(0,d.propertyPrice-Math.round(targetLoan));
-  const extraDown=neededDown-d.downPayment;
+  // 住宅追加費用を含めて、収入の25%以内に収まる借入額を逆算
+  const targetPayment=Math.max(0,householdIncome*0.25-housingExtrasM);
+  const targetLoan=Math.floor(maxLoanPrincipal(targetPayment,d.loanYears,d.interestRate)/100)*100;
+  const neededDown=Math.max(0,d.propertyPrice-targetLoan);
+  const extraDown=Math.max(0,neededDown-d.downPayment);
 
   if(loanRatio<0.25){
     housing={
@@ -715,13 +725,13 @@ function diagnose(d,proj,lp){
     housing={
       status:'yellow',label:'住宅ローン：やや高め',
       msg:`世帯月収${householdIncome.toFixed(1)}万円に対してローン返済＋追加費用は月${(lp+housingExtrasM).toFixed(1)}万円（収入比${rPct}%）です。許容範囲内ですが、子供の教育費や急な支出が重なると家計が圧迫されます。`,
-      action:`理想の25%以下に抑えるには、借入額を${Math.round(targetLoan/10000)}万円以下にするか${extraDown>0?`頭金をあと${Math.round(extraDown/10000)*10}万円増やす`:'繰り上げ返済を検討する'}ことで改善できます。`
+      action:`理想の25%以下に抑えるには、借入額を${targetLoan.toLocaleString()}万円以下にするか${extraDown>0?`頭金をあと${Math.round(extraDown).toLocaleString()}万円増やす`:'繰り上げ返済を検討する'}ことで改善できます。`
     };
   } else {
     housing={
       status:'red',label:'住宅ローン：高負担',
       msg:`世帯月収${householdIncome.toFixed(1)}万円に対してローン返済＋追加費用は月${(lp+housingExtrasM).toFixed(1)}万円（収入比${rPct}%）です。35%を超える返済比率は、教育費・老後資金の積立が困難になるリスクがあります。`,
-      action:`物件価格を${Math.round((d.propertyPrice*(rPct/25)/100)*100/100)}万円以下に見直すか、頭金をあと${Math.round((loanAmt-targetLoan)/10000)*10}万円以上増やすことを強く推奨します。`
+      action:`物件価格を${Math.round(targetLoan+d.downPayment).toLocaleString()}万円以下に見直すか、頭金をあと${Math.max(0,Math.round(loanAmt-targetLoan)).toLocaleString()}万円以上増やすことを強く推奨します。`
     };
   }
 
