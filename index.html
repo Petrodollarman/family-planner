@@ -171,6 +171,8 @@ input,select,textarea{font-size:16px!important}
 const {useState,useEffect,useMemo,useRef,useCallback}=React;
 const CY=new Date().getFullYear();
 const STORE="fp_v5";
+const APP_VERSION="v1.0.4";
+const APP_UPDATED_AT="2026年8月16日";
 const N=v=>parseFloat(v)||0;
 
 const EDU_STAGES=[
@@ -2837,7 +2839,10 @@ function App(){
         /* 自動保存とバックアップ（スマホで迷わない導線） */
         E('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
           padding:'0 2px 7px',fontSize:11,color:'var(--txt3)'}},
-          E('span',null,'✓ 入力内容はこの端末に自動保存されています'),
+          E('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+            E('span',null,'✓ 入力内容はこの端末に自動保存されています'),
+            E('span',null,`${APP_VERSION} ・ 最終更新 ${APP_UPDATED_AT}`)
+          ),
           E('button',{
             onClick:exportData,
             style:{flexShrink:0,padding:'6px 10px',borderRadius:7,border:'1px solid #378ADD',
@@ -4304,7 +4309,7 @@ function App(){
           E('div',{style:{marginTop:24}},
             E('div',{style:{fontSize:13,fontWeight:700,color:'var(--txt)',marginBottom:12,paddingBottom:8,borderBottom:'.5px solid var(--bdr)'}},'💬 よくある質問'),
             ...[
-              ['データはどこに保存されますか？','お使いのブラウザのみに保存されます。サーバーへの送信は一切ありません。「⋯」メニューからJSONファイルとして書き出し・読み込みもできます。'],
+              ['データはどこに保存されますか？','お使いのブラウザのみに保存されます。サーバーへの送信は一切ありません。ヘッダーの「バックアップ」から書き出し、「設定」から読み込みができます。'],
               ['複数のシナリオを比較できますか？','プランバーの「＋」ボタンから複数プランを作成し、「比較」ボタンで総資産推移を並べて比較できます。'],
               ['年金の計算は正確ですか？','厚労省・日本年金機構の公式計算式をもとにした概算です。繰上げ・繰下げ受給も反映されます。正確な受給額はねんきん定期便でご確認ください。'],
               ['住宅を買わない場合は？','住宅タブの数値はそのままにしておき、ダッシュボードのグラフで「ローンなし」の結果を確認できます。住宅欄を空にする設定は現状未対応です。'],
@@ -4319,7 +4324,8 @@ function App(){
           /* フッター */
           E('div',{style:{textAlign:'center',padding:'24px 0 32px',color:'var(--txt3)',fontSize:11,lineHeight:1.8}},
             'データはご自身のデバイスのみに保存されます。',E('br',null),
-            '計算はすべてブラウザ内で完結しており、外部サーバーへの送信はありません。'
+            '計算はすべてブラウザ内で完結しており、外部サーバーへの送信はありません。',E('br',null),
+            `家族の資産プランナー ${APP_VERSION} ・ 最終更新 ${APP_UPDATED_AT}`
           )
         )
       ),
